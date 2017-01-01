@@ -1,0 +1,10 @@
+
+module test;
+
+let x = 5 + 7 ;;
+
+let y=7+x;
+
+let result = "The result is: " + y;
+
+
