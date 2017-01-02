@@ -4,12 +4,16 @@ import com.redgear.brace.ast.Module;
 import com.redgear.brace.eval.Eval;
 import com.redgear.brace.format.Formatter;
 import com.redgear.brace.lex.Lexer;
+import com.redgear.brace.lex.Token;
 import com.redgear.brace.visual.Visualizer;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by LordBlackHole on 2016-12-30.
@@ -21,13 +25,19 @@ public class ParserTest {
     @Test
     public void basicAssignmentTest() throws IOException, InterruptedException {
 
-        Module mod = withReader(new File("src/test/resources/basicAssignmentTest.txt"), reader -> new Parser(new Lexer(reader).tokenize().iterator()).readModule());
+        try {
+            List<Token> tokens = withReader(new File("src/test/resources/basicAssignmentTest.txt"), reader -> new Lexer(reader).tokenize().collect(Collectors.toList()));
+
+            Module mod = new Parser(tokens.iterator()).readModule();
 
 
 //        format(mod);
-        visualize(mod);
-        evaluate(mod);
-
+            visualize(mod);
+            evaluate(mod);
+        } catch (Throwable e) {
+            log.info("", e);
+            throw e;
+        }
     }
 
 

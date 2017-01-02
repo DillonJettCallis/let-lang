@@ -61,7 +61,7 @@ public class Visualizer extends PrintingWalker {
             modName += ".";
         }
 
-        print(printIndent(), "Call: ", modName, call.getMethod(), "\n");
+        print(printIndent(), "Call: ", modName, call.getName(), "\n");
         indent++;
 
         call.getArguments().forEach(this::walk);

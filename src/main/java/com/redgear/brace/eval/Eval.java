@@ -14,6 +14,7 @@ import java.util.function.Function;
 public class Eval implements Walker {
 
     private static final Logger log = LoggerFactory.getLogger(Eval.class);
+    private static final Function<List<Object>, Object> ifFunc = args -> null;
     private static Deque<Object> stack = new LinkedList<>();
     private LibraryScope libraryScope;
     private ModuleScope moduleScope;
@@ -22,6 +23,8 @@ public class Eval implements Walker {
     public Eval() {
 
         libraryScope = new LibraryScope();
+
+        libraryScope.putFunc("if", ifFunc);
 
         libraryScope.putFunc("+", args -> {
 
@@ -41,6 +44,17 @@ public class Eval implements Walker {
                 throw new RuntimeException("Illegal arguments to '+' op, found: " + args);
             }
 
+        });
+
+        libraryScope.putFunc("==", args -> {
+
+            if(args.size() != 2)
+                throw new RuntimeException("Wrong number of arguments for op '==', found: " + args);
+
+            Object left = args.get(0);
+            Object right = args.get(1);
+
+            return Objects.equals(left, right);
         });
     }
 
@@ -79,10 +93,15 @@ public class Eval implements Walker {
 
     @Override
     public void walk(Call call) {
-        String module = call.getModuleRef().getName();
+        walk(call.getMethod());
 
         @SuppressWarnings("unchecked")
-        Function<List<Object>, Object> func = (Function<List<Object>, Object>) localScope.getValue(module, call.getMethod());
+        Function<List<Object>, Object> func = (Function<List<Object>, Object>) stack.pop();
+
+        if(func == ifFunc) {
+            doIf(call);
+            return;
+        }
 
         if(func == null) {
             throw new RuntimeException("No such method: " + call.getMethod());
@@ -99,6 +118,27 @@ public class Eval implements Walker {
 
             stack.push(func.apply(args));
         }
+    }
+
+    private void doIf(Call call) {
+        int argSize = call.getArguments().size();
+
+        if(argSize != 2 && argSize != 3) {
+            throw new RuntimeException("Wrong number of arguments for if statement! Must have 2 or 3, found: " + argSize);
+        }
+
+        walk(call.getArguments().get(0));
+
+        Object test = stack.pop();
+
+        if (test != null && test != Boolean.FALSE) {
+            walk(call.getArguments().get(1));
+        } else if(argSize == 3) {
+            walk(call.getArguments().get(2));
+        } else {
+            stack.push(null);
+        }
+
     }
 
 }

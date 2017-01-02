@@ -8,19 +8,19 @@ import java.util.List;
  */
 public class Call implements Expression {
 
-    private ModuleRef moduleRef;
-    private String method;
-    private List<Expression> arguments;
+    private final ModuleRef moduleRef;
+    private final Expression method;
+    private final List<Expression> arguments;
 
-    public Call(ModuleRef moduleRef, String method) {
+    public Call(ModuleRef moduleRef, Expression method) {
         this(moduleRef, method, new ArrayList<>());
     }
 
-    public Call(ModuleRef moduleRef, String method, Expression expression) {
+    public Call(ModuleRef moduleRef, Expression method, Expression expression) {
         this(moduleRef, method, singleton(expression));
     }
 
-    public Call(ModuleRef moduleRef, String method, List<Expression> arguments) {
+    public Call(ModuleRef moduleRef, Expression method, List<Expression> arguments) {
         this.moduleRef = moduleRef;
         this.method = method;
         this.arguments = arguments;
@@ -36,24 +36,20 @@ public class Call implements Expression {
         return moduleRef;
     }
 
-    public void setModuleRef(ModuleRef moduleRef) {
-        this.moduleRef = moduleRef;
-    }
-
-    public String getMethod() {
+    public Expression getMethod() {
         return method;
-    }
-
-    public void setMethod(String method) {
-        this.method = method;
     }
 
     public List<Expression> getArguments() {
         return arguments;
     }
 
-    public void setArguments(List<Expression> arguments) {
-        this.arguments = arguments;
+    public String getName() {
+        if(method instanceof Variable) {
+            return ((Variable) method).getName();
+        } else {
+            return "anon";
+        }
     }
 
     @Override

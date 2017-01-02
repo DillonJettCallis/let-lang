@@ -16,6 +16,7 @@ public class Parser {
 
     private static final Logger log = LoggerFactory.getLogger(Parser.class);
     private final Iterator<Token> tokens;
+    private Token latest;
 
     public Parser(Iterator<Token> tokens) {
         this.tokens = tokens;
@@ -42,7 +43,9 @@ public class Parser {
         }
 
         while (tokens.hasNext()) {
-            mod.getExpressions().add(readStatement());
+            Expression statement = readStatement();
+            if(statement != null)
+                mod.getExpressions().add(statement);
         }
 
         return mod;
@@ -58,7 +61,8 @@ public class Parser {
 
     private Token next() {
         if (tokens.hasNext()) {
-            return tokens.next();
+            latest = tokens.next();
+            return latest;
         } else {
             throw new RuntimeException("Unexpected end of file");
         }
@@ -91,7 +95,7 @@ public class Parser {
             String op = begin.getValue();
 
             if(";".equals(op)) {
-                return readStatement();
+                return null;
             } else {
                 throw syntaxError(begin, "statement");
             }
@@ -108,7 +112,17 @@ public class Parser {
         if(begin instanceof LiteralToken) {
             return readExpression(new Literal(((LiteralToken) begin).getRealValue()));
         } else if (begin instanceof WordToken) {
-            return readExpression( new Variable(begin.getValue()) );
+            String word = begin.getValue();
+
+            if("true".equals(word)) {
+                return readExpression(new Literal(true));
+            } else if("false".equals(word)) {
+                return readExpression(new Literal(false));
+            }else if("_".equals(word)) {
+                return readExpression(new Literal(null));
+            } else {
+                return readExpression(new Variable(word));
+            }
         } else {
             throw syntaxError(begin, "expression");
         }
@@ -124,6 +138,8 @@ public class Parser {
 
             if(");,".contains(op)) {
                 return left;
+            } else if("(".equals(op)){
+                return readApplication(left);
             } else {
                 return readOperator(left, op);
             }
@@ -152,7 +168,7 @@ public class Parser {
     private Call readOperator(Expression left, String op) {
         Expression right = readExpression();
 
-        Call call = new Call(LibraryModule.get(), op);
+        Call call = new Call(LibraryModule.get(), new Variable(op));
 
         call.getArguments().add(left);
         call.getArguments().add(right);
@@ -160,15 +176,17 @@ public class Parser {
         return call;
     }
 
-    private Call readApplication(String name) {
+    private Call readApplication(Expression name) {
         return readApplication(ThisModule.get(), name);
     }
 
 
-    private Call readApplication(ModuleRef mod, String name) {
+    private Call readApplication(ModuleRef mod, Expression name) {
         List<Expression> args = new ArrayList<>();
 
-
+        do {
+            args.add(readExpression());
+        } while(",".equals(latest.getValue()));
 
         return new Call(mod, name, args);
     }

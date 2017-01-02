@@ -44,7 +44,13 @@ public class Lexer {
                 } else if (Character.isDigit(latest)) {
                     action.accept(readNumberValue(location()));
                 } else if (Character.isJavaIdentifierStart(latest)) {
-                    action.accept(readWord(location()));
+                    WordToken word = readWord(location());
+
+                    if("let".equals(word.getValue())) {
+                        action.accept(new OperatorToken(word.getLocation(), ";"));
+                    }
+
+                    action.accept(word);
                 } else if(ops.contains(String.valueOf(latest))) {
                     action.accept(readOperator(location()));
                 } else {

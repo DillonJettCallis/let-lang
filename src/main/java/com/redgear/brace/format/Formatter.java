@@ -54,7 +54,9 @@ public class Formatter extends PrintingWalker {
             modName += ".";
         }
 
-        print(modName, call.getMethod(), "(");
+        print(modName);
+        walk(call.getMethod());
+        print("(");
 
         if(call.getArguments().size() == 0) {
             print(")");
