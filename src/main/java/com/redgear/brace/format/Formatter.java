@@ -74,5 +74,10 @@ public class Formatter extends PrintingWalker {
         }
     }
 
+    @Override
+    public void walk(Func func) {
+
+    }
+
 
 }

@@ -1,34 +1,33 @@
 package com.redgear.brace.ast;
 
+import com.redgear.brace.lex.Location;
+
 /**
  * Created by LordBlackHole on 2016-12-30.
  */
 public class Assignment implements Expression {
 
-    private Variable var;
 
-    private Expression exp;
+    private final Location location;
+    private final Variable var;
+    private final Expression exp;
 
-    public Assignment(Variable var, Expression exp) {
+    public Assignment(Location location, Variable var, Expression exp) {
+        this.location = location;
         this.var = var;
         this.exp = exp;
+
     }
 
     public Variable getVar() {
         return var;
     }
 
-    public void setVar(Variable var) {
-        this.var = var;
-    }
-
     public Expression getExp() {
         return exp;
     }
 
-    public void setExp(Expression exp) {
-        this.exp = exp;
-    }
+
 
     @Override
     public String toString() {
@@ -36,5 +35,10 @@ public class Assignment implements Expression {
                 ",\"var\": \"" + var + "\"" +
                 ",\"exp\": \"" + exp + "\"" +
                 '}';
+    }
+
+    @Override
+    public Location getLocation() {
+        return location;
     }
 }

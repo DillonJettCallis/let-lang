@@ -68,4 +68,9 @@ public class Visualizer extends PrintingWalker {
 
         indent--;
     }
+
+    @Override
+    public void walk(Func func) {
+
+    }
 }

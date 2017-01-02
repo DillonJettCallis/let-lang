@@ -1,5 +1,7 @@
 package com.redgear.brace.ast;
 
+import com.redgear.brace.lex.Location;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,19 +10,21 @@ import java.util.List;
  */
 public class Call implements Expression {
 
+    private final Location location;
     private final ModuleRef moduleRef;
     private final Expression method;
     private final List<Expression> arguments;
 
-    public Call(ModuleRef moduleRef, Expression method) {
-        this(moduleRef, method, new ArrayList<>());
+    public Call(Location location, ModuleRef moduleRef, Expression method) {
+        this(location, moduleRef, method, new ArrayList<>());
     }
 
-    public Call(ModuleRef moduleRef, Expression method, Expression expression) {
-        this(moduleRef, method, singleton(expression));
+    public Call(Location location, ModuleRef moduleRef, Expression method, Expression expression) {
+        this(location, moduleRef, method, singleton(expression));
     }
 
-    public Call(ModuleRef moduleRef, Expression method, List<Expression> arguments) {
+    public Call(Location location, ModuleRef moduleRef, Expression method, List<Expression> arguments) {
+        this.location = location;
         this.moduleRef = moduleRef;
         this.method = method;
         this.arguments = arguments;
@@ -59,5 +63,10 @@ public class Call implements Expression {
                 ",\"method\": \"" + method + '\'' + "\"" +
                 ",\"arguments\": \"" + arguments + "\"" +
                 '}';
+    }
+
+    @Override
+    public Location getLocation() {
+        return location;
     }
 }

@@ -5,9 +5,8 @@ import com.redgear.brace.lex.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by LordBlackHole on 2016-12-30.
@@ -15,7 +14,9 @@ import java.util.List;
 public class Parser {
 
     private static final Logger log = LoggerFactory.getLogger(Parser.class);
+    private static final Set<String> unaryOps = new HashSet<>(Arrays.asList("!", "++", "--"));
     private final Iterator<Token> tokens;
+    private final Deque<Token> backlog = new LinkedList<>();
     private Token latest;
 
     public Parser(Iterator<Token> tokens) {
@@ -34,7 +35,7 @@ public class Parser {
 
         WordToken modName = nextType(WordToken.class, "module name");
 
-        Module mod = new Module(modName.getValue());
+        Module mod = new Module(start.getLocation(), modName.getValue());
 
         OperatorToken close = nextType(OperatorToken.class, ";");
 
@@ -48,6 +49,8 @@ public class Parser {
                 mod.getExpressions().add(statement);
         }
 
+        verifyImmutable(mod.getExpressions());
+
         return mod;
     }
 
@@ -59,12 +62,20 @@ public class Parser {
         return new RuntimeException("Syntax error: expected '" + expected + "', found: '" + found + "' " + location.print());
     }
 
+    private void backFill(Token token) {
+        backlog.push(token);
+    }
+
     private Token next() {
-        if (tokens.hasNext()) {
-            latest = tokens.next();
-            return latest;
+        if (backlog.isEmpty()) {
+            if (tokens.hasNext()) {
+                latest = tokens.next();
+                return latest;
+            } else {
+                throw new RuntimeException("Unexpected end of file");
+            }
         } else {
-            throw new RuntimeException("Unexpected end of file");
+            return backlog.pop();
         }
     }
 
@@ -89,19 +100,20 @@ public class Parser {
             if("let".equals(word)) {
                 return readAssignment();
             } else {
-                throw syntaxError(begin, "statement");
+                backFill(begin);
+                return readExpression();
             }
         } else if(begin instanceof OperatorToken) {
             String op = begin.getValue();
 
-            if(";".equals(op)) {
+            if(";}".contains(op)) {
                 return null;
             } else {
                 throw syntaxError(begin, "statement");
             }
 
         } else {
-            throw syntaxError(begin, "statement");
+            return readExpression();
         }
     }
 
@@ -110,24 +122,28 @@ public class Parser {
         Token begin = next();
 
         if(begin instanceof LiteralToken) {
-            return readExpression(new Literal(((LiteralToken) begin).getRealValue()));
+            return readExpression(new Literal(begin.getLocation(), ((LiteralToken) begin).getRealValue()));
         } else if (begin instanceof WordToken) {
             String word = begin.getValue();
 
             if("true".equals(word)) {
-                return readExpression(new Literal(true));
+                return readExpression(new Literal(begin.getLocation(), true));
             } else if("false".equals(word)) {
-                return readExpression(new Literal(false));
+                return readExpression(new Literal(begin.getLocation(), false));
             }else if("_".equals(word)) {
-                return readExpression(new Literal(null));
+                return readExpression(new Literal(begin.getLocation(), null));
             } else {
-                return readExpression(new Variable(word));
+                return readExpression(new Variable(begin.getLocation(), word));
             }
         } else if(begin instanceof OperatorToken){
             String op = begin.getValue();
 
             if("(".equals(op)) {
                 return readExpression(readExpression());
+            } if("{".equals(op)){
+                return readExpression(readFunction());
+            } if(unaryOps.contains(op) || "-".equals(op)) {
+                return readUnaryOp(readExpression(), op);
             } else {
                 throw syntaxError(begin, "expression");
             }
@@ -145,10 +161,12 @@ public class Parser {
             String op = begin.getValue();
 
 
-            if(");,".contains(op)) {
+            if("});,".contains(op)) {
                 return left;
             } else if("(".equals(op)){
-                return readApplication(left);
+                return readExpression(readApplication(left));
+            } else if(unaryOps.contains(op)) {
+                return readUnaryOp(left, op);
             } else {
                 return readOperator(left, op);
             }
@@ -171,18 +189,22 @@ public class Parser {
         Expression expression = readExpression();
 
 
-        return new Assignment(new Variable(id.getValue()), expression);
+        return new Assignment(id.getLocation(), new Variable(id.getLocation(), id.getValue()), expression);
     }
 
     private Call readOperator(Expression left, String op) {
-        Expression right = readExpression();
+        Call call = new Call(left.getLocation(), LibraryModule.get(), new Variable(left.getLocation(),op));
 
-        Call call = new Call(LibraryModule.get(), new Variable(op));
+        Expression right = readExpression();
 
         call.getArguments().add(left);
         call.getArguments().add(right);
 
         return call;
+    }
+
+    private Call readUnaryOp(Expression ex, String op) {
+        return new Call(ex.getLocation(), LibraryModule.get(), new Variable(ex.getLocation(), op), ex);
     }
 
     private Call readApplication(Expression name) {
@@ -197,7 +219,66 @@ public class Parser {
             args.add(readExpression());
         } while(",".equals(latest.getValue()));
 
-        return new Call(mod, name, args);
+        return new Call(name.getLocation(), mod, name, args);
+    }
+
+    private Func readFunction() {
+        List<Variable> args = new ArrayList<>();
+
+        boolean more = true;
+        Token token;
+        Location start = latest.getLocation();
+
+        while(more) {
+            token = next();
+
+            if(token instanceof OperatorToken) {
+                String op = token.getValue();
+                if("=>".equals(op)) {
+                    more = false;
+                } else if(!",".equals(op)) {
+                    throw syntaxError(token, "=>");
+                }
+
+            } else if(token instanceof WordToken) {
+                String word = token.getValue();
+                args.add(new Variable(token.getLocation(), word));
+            } else {
+                throw syntaxError(token, "arguments");
+            }
+        }
+
+
+        List<Expression> statements = new ArrayList<>();
+
+        while(!"}".equals(latest.getValue())) {
+            Expression ex = readStatement();
+            if(ex != null)
+                statements.add(ex);
+        }
+
+        verifyImmutable(statements);
+
+        return new Func(start, args, statements);
+    }
+
+    private void verifyImmutable(List<Expression> statements) {
+        List<Assignment> assigns = statements.stream()
+                .filter(ex -> ex instanceof Assignment)
+                .map(ex -> (Assignment) ex)
+                .collect(Collectors.toList());
+
+        Set<String> varNames = new HashSet<>();
+
+        for (Assignment assign : assigns) {
+            String name = assign.getVar().getName();
+
+            if(varNames.contains(name)) {
+                throw new RuntimeException("Reassignment to var '" + name + "' " + assign.getLocation().print());
+            } else {
+                varNames.add(name);
+            }
+        }
     }
 
 }

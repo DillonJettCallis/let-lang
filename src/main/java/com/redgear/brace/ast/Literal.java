@@ -1,13 +1,17 @@
 package com.redgear.brace.ast;
 
+import com.redgear.brace.lex.Location;
+
 /**
  * Created by LordBlackHole on 2016-12-30.
  */
 public class Literal implements Expression {
 
-    private Object value;
+    private final Location location;
+    private final Object value;
 
-    public Literal(Object value) {
+    public Literal(Location location, Object value) {
+        this.location = location;
         this.value = value;
     }
 
@@ -15,15 +19,16 @@ public class Literal implements Expression {
         return value;
     }
 
-    public void setValue(Object value) {
-        this.value = value;
-    }
-
     @Override
     public String toString() {
         return "{\"className\": \"" + Literal.class + "\"" +
                 ",\"value\": \"" + value + "\"" +
                 '}';
+    }
+
+    @Override
+    public Location getLocation() {
+        return location;
     }
 
 }

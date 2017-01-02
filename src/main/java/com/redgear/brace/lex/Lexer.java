@@ -4,6 +4,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.function.Consumer;
@@ -16,8 +18,9 @@ import java.util.stream.StreamSupport;
 public class Lexer {
 
     private final Reader reader;
-    private static final String sticky = "+-*/=&|";
-    private static final String ops = ".,;(){}[]<>" + sticky;
+    private static final String sticky = "+-*/=&|<>!";
+    private static final String ops = ".,;(){}[]" + sticky;
+    private final Deque<String> braceBalence = new LinkedList<>();
     private char latest = ' ';
     private int row = 1;
     private int column = 0;
@@ -35,10 +38,20 @@ public class Lexer {
             @Override
             public boolean tryAdvance(Consumer<? super Token> action) {
 
+                if(finished) {
+                    return false;
+                }
+
                 eatWhitespace();
 
                 if(finished) {
-                    return false;
+
+                    if(!braceBalence.isEmpty()) {
+                        throw new RuntimeException("Unexpected end of file: Opened brace: " + braceBalence.pop() + " is unclosed");
+                    }
+
+                    action.accept(new OperatorToken(location(), ";"));
+                    return true;
                 } else if (latest == '"') {
                     action.accept(readStringValue(location()));
                 } else if (Character.isDigit(latest)) {
@@ -69,12 +82,24 @@ public class Lexer {
             return;
 
         try {
-            int next = reader.read();
-            if(next == -1) {
-                finished = true;
-                return;
-            }
-            latest = (char) next;
+            boolean comment = false;
+            do {
+                int next = reader.read();
+                if (next == -1) {
+                    finished = true;
+                    return;
+                }
+                latest = (char) next;
+
+                if(latest == '#') {
+                    comment = true;
+                }
+
+                if(comment && latest == '\n') {
+                    comment = false;
+                }
+
+            } while (comment);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -82,6 +107,8 @@ public class Lexer {
         if(latest == '\n') {
             row++;
             column = 0;
+        } else if(latest == '\t'){ //Tabs
+            column += 4;
         } else {
             column++;
         }
@@ -158,6 +185,23 @@ public class Lexer {
             return new OperatorToken(location, builder.toString());
         } else {
             String op = String.valueOf(latest);
+
+            if("({[".contains(op)) {
+                braceBalence.push(op);
+            } else if (")]}".contains(op)) {
+
+                if(braceBalence.isEmpty()) {
+                    throw new RuntimeException("Closing " + op + " without an opening " + location.print());
+                }
+
+                String open = braceBalence.pop();
+
+                if ((!"(".equals(open) || !")".equals(op)) && (!"{".equals(open) || !"}".equals(op)) && (!"[".equals(open) || !"]".equals(op))) {
+                    throw new RuntimeException("Unbalanced braces: Opened: " + open + " closed: " + op + " " + location.print());
+                }
+
+            }
+
             eatChar();
             return new OperatorToken(location, op);
         }

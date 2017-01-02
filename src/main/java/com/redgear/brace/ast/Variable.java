@@ -1,14 +1,17 @@
 package com.redgear.brace.ast;
 
+import com.redgear.brace.lex.Location;
+
 /**
  * Created by LordBlackHole on 2016-12-30.
  */
 public class Variable implements Expression {
 
-    private String name;
+    private final Location location;
+    private final String name;
 
-
-    public Variable(String name) {
+    public Variable(Location location, String name) {
+        this.location = location;
         this.name = name;
     }
 
@@ -16,15 +19,16 @@ public class Variable implements Expression {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
     @Override
     public String toString() {
         return "{\"className\": \"" + Variable.class + "\"" +
                 ",\"name\": \"" + name + '\'' + "\"" +
                 '}';
+    }
+
+    @Override
+    public Location getLocation() {
+        return location;
     }
 
 }

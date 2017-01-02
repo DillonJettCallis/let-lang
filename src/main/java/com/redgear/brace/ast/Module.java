@@ -1,5 +1,7 @@
 package com.redgear.brace.ast;
 
+import com.redgear.brace.lex.Location;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,15 +10,16 @@ import java.util.List;
  */
 public class Module implements Expression {
 
+    private final Location location;
     private final String name;
     private final List<Expression> expressions;
 
-    public Module(String name) {
-        this.name = name;
-        this.expressions = new ArrayList<>();
+    public Module(Location location, String name) {
+        this(location, name, new ArrayList<>());
     }
 
-    public Module(String name, List<Expression> expressions) {
+    public Module(Location location, String name, List<Expression> expressions) {
+        this.location = location;
         this.name = name;
         this.expressions = expressions;
     }
@@ -34,5 +37,10 @@ public class Module implements Expression {
 
     public String getName() {
         return name;
+    }
+
+    @Override
+    public Location getLocation() {
+        return location;
     }
 }

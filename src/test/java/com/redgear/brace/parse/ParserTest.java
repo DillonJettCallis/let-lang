@@ -3,6 +3,7 @@ package com.redgear.brace.parse;
 import com.redgear.brace.ast.Module;
 import com.redgear.brace.eval.Eval;
 import com.redgear.brace.format.Formatter;
+import com.redgear.brace.js.JavascriptTranspiler;
 import com.redgear.brace.lex.Lexer;
 import com.redgear.brace.lex.Token;
 import com.redgear.brace.visual.Visualizer;
@@ -31,8 +32,9 @@ public class ParserTest {
             Module mod = new Parser(tokens.iterator()).readModule();
 
 
-//        format(mod);
-            visualize(mod);
+//            format(mod);
+//            visualize(mod);
+//            jsTranspile(new File("src/test/resources/basicAssignmentTest.js"), mod);
             evaluate(mod);
         } catch (Throwable e) {
             log.info("", e);
@@ -92,6 +94,16 @@ public class ParserTest {
         Eval eval = new Eval();
 
         eval.walk(mod);
+    }
+
+    private void jsTranspile(File out, Module mod) throws IOException {
+        try (Writer writer = new BufferedWriter(new FileWriter(out))) {
+            log.info("Visualized: ");
+
+            JavascriptTranspiler transpiler = new JavascriptTranspiler(writer);
+
+            transpiler.walk(mod);
+        }
     }
 
 }

@@ -1,6 +1,10 @@
 
 module test
 
+
+#This is a comment
+
+
 let x = 5 + 7
 
 let y=7+x
@@ -11,5 +15,44 @@ let check = x == 12
 
 let condition = if( (15 + 4) == y, "pass", "fail")
 
+let sum = { l, r =>
+	let ans = l + r;
+}
+
+let num = sum(6, 4)
+
+let recurse = { num, times, ans =>
+	if(times == 0, ans, recurse(num, times - 1, num + ans))
+}
+
+
+let mul = recurse(3, 4, 0)
+
+let complexTest = if( (mul == 10) || (num == 10), "pass", "fail")
+
+
+let pow = 2 ** 4
+
+let double = {num => num * 2 }
+
+let op = { num, fun => fun(num) * fun(num) }
+
+let higher = op(2, double)
+
+let _ = print("This is a test: ", higher)
+
+let cons = 1
+
+let neg = -1
+
+let sub = 2 + neg
+
+let negMul = 3 * -2
+
+
+let invert = if(! (1 == 1), "fail", "pass")
+
+
+let another = sum(-1, -2 - -5)
 
 

@@ -6,7 +6,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.function.Function;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Created by LordBlackHole on 2016-12-30.
@@ -14,8 +16,7 @@ import java.util.function.Function;
 public class Eval implements Walker {
 
     private static final Logger log = LoggerFactory.getLogger(Eval.class);
-    private static final Function<List<Object>, Object> ifFunc = args -> null;
-    private static Deque<Object> stack = new LinkedList<>();
+    private Deque<Object> stack = new LinkedList<>();
     private LibraryScope libraryScope;
     private ModuleScope moduleScope;
     private LocalScope localScope;
@@ -24,37 +25,82 @@ public class Eval implements Walker {
 
         libraryScope = new LibraryScope();
 
-        libraryScope.putFunc("if", ifFunc);
+        new CoreLibrary().buildLibrary(libraryScope);
 
-        libraryScope.putFunc("+", args -> {
+        libraryScope.putMacroFunc("&&", (scope, args) -> {
 
             if(args.size() != 2)
-                throw new RuntimeException("Wrong number of arguments for op '+', found: " + args);
+                throw new RuntimeException("Wrong number of arguments for op '&&', found: " + args);
 
-            Object left = args.get(0);
-            Object right = args.get(1);
+            Expression left = args.get(0);
+            Expression right = args.get(1);
 
-            if(left instanceof String || right instanceof String) {
-                return String.valueOf(left) + String.valueOf(right);
-            } else if (left instanceof Integer && right instanceof Integer) {
-                return (Integer) left + (Integer) right;
-            } else if(left instanceof Number && right instanceof Number) {
-                return ((Number) left).doubleValue() + ((Number) right).doubleValue();
+            walk(left);
+
+            Object first = stack.pop();
+
+            if(first == null || first == Boolean.FALSE) {
+                return false;
             } else {
-                throw new RuntimeException("Illegal arguments to '+' op, found: " + args);
+                walk(right);
+                Object second = stack.pop();
+
+                if(second == null || second == Boolean.FALSE){
+                    return false;
+                } else {
+                    return second;
+                }
             }
 
         });
 
-        libraryScope.putFunc("==", args -> {
+        libraryScope.putMacroFunc("||", (scope, args) -> {
 
             if(args.size() != 2)
-                throw new RuntimeException("Wrong number of arguments for op '==', found: " + args);
+                throw new RuntimeException("Wrong number of arguments for op '||', found: " + args);
 
-            Object left = args.get(0);
-            Object right = args.get(1);
+            Expression left = args.get(0);
+            Expression right = args.get(1);
 
-            return Objects.equals(left, right);
+            walk(left);
+
+            Object first = stack.pop();
+
+            if(first == null || first == Boolean.FALSE) {
+                walk(right);
+                Object second = stack.pop();
+
+                if(second == null || second == Boolean.FALSE){
+                    return false;
+                } else {
+                    return second;
+                }
+            } else {
+                return first;
+            }
+
+        });
+
+        libraryScope.putMacroFunc("if", (scope, args) -> {
+            int argSize = args.size();
+
+            if(argSize != 2 && argSize != 3) {
+                throw new RuntimeException("Wrong number of arguments for if statement! Must have 2 or 3, found: " + argSize);
+            }
+
+            walk(args.get(0));
+
+            Object test = stack.pop();
+
+            if (test != null && test != Boolean.FALSE) {
+                walk(args.get(1));
+                return stack.pop();
+            } else if(argSize == 3) {
+                walk(args.get(2));
+                return stack.pop();
+            } else {
+                return null;
+            }
         });
     }
 
@@ -64,11 +110,13 @@ public class Eval implements Walker {
 
         walk(assignment.getExp());
 
-        Object result = stack.pop();
+        Object result = stack.peek();
 
         log.info("{} = {}", var, result);
 
-        localScope.putValue(var, result);
+        if(var != null) {
+            localScope.putValue(var, result);
+        }
     }
 
     @Override
@@ -95,50 +143,82 @@ public class Eval implements Walker {
     public void walk(Call call) {
         walk(call.getMethod());
 
-        @SuppressWarnings("unchecked")
-        Function<List<Object>, Object> func = (Function<List<Object>, Object>) stack.pop();
+        Object func = stack.pop();
 
-        if(func == ifFunc) {
-            doIf(call);
-            return;
+        try {
+            if (func == null) {
+                throw new RuntimeException("No such function: " + call.getName() + " " + call.getLocation().print());
+            } else if (func instanceof MacroFunc) {
+                callMacroFunc(call, (MacroFunc) func);
+            } else if (func instanceof LibFunc) {
+                callLibFunc(call, (LibFunc) func);
+            } else if (func instanceof Func) {
+                callFunction(call, (Func) func);
+            } else {
+                throw new RuntimeException("Not a function: " + call.getName() + " " + call.getLocation().print());
+            }
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e.getMessage() + " " + call.getLocation().print(), e);
+        }
+    }
+
+    @Override
+    public void walk(Func func) {
+        stack.push(func);
+    }
+
+    public interface LibFunc extends BiFunction<Scope, List<Object>, Object> {
+
+
+    }
+
+    public interface MacroFunc extends BiFunction<Scope, List<Expression>, Object> {
+
+    }
+
+    private void runFunc(Consumer<Scope> func) {
+        LocalScope outerScope = localScope;
+        localScope = new LocalScope(localScope);
+        Deque<Object> outerStack = stack;
+        stack = new LinkedList<>();
+
+        func.accept(localScope);
+
+        localScope = outerScope;
+        outerStack.push(stack.pop());
+        stack = outerStack;
+    }
+
+    private void callLibFunc(Call call, LibFunc func) {
+        int size = call.getArguments().size();
+
+        call.getArguments().forEach(this::walk);
+
+        List<Object> args = new LinkedList<>();
+
+        for(int i = 0; i < size; i++) {
+            args.add(0, stack.pop());
         }
 
-        if(func == null) {
-            throw new RuntimeException("No such method: " + call.getMethod());
-        } else {
-            int size = call.getArguments().size();
+        runFunc(scope -> stack.push(func.apply(localScope, args)));
+    }
+
+    private void callFunction(Call call, Func func) {
+        int size = call.getArguments().size();
+
+        runFunc(scope -> {
 
             call.getArguments().forEach(this::walk);
 
-            List<Object> args = new LinkedList<>();
-
-            for(int i = 0; i < size; i++) {
-                args.add(0, stack.pop());
+            for(int i = size - 1; i >= 0; i--) {
+                scope.putValue(func.getArgs().get(i).getName(), stack.pop());
             }
 
-            stack.push(func.apply(args));
-        }
+            func.getStatements().forEach(this::walk);
+        });
     }
 
-    private void doIf(Call call) {
-        int argSize = call.getArguments().size();
-
-        if(argSize != 2 && argSize != 3) {
-            throw new RuntimeException("Wrong number of arguments for if statement! Must have 2 or 3, found: " + argSize);
-        }
-
-        walk(call.getArguments().get(0));
-
-        Object test = stack.pop();
-
-        if (test != null && test != Boolean.FALSE) {
-            walk(call.getArguments().get(1));
-        } else if(argSize == 3) {
-            walk(call.getArguments().get(2));
-        } else {
-            stack.push(null);
-        }
-
+    private void callMacroFunc(Call call, MacroFunc func) {
+        runFunc(scope -> stack.push(func.apply(scope, call.getArguments())));
     }
-
 }
