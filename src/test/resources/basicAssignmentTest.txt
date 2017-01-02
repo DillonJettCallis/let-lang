@@ -5,11 +5,11 @@ let x = 5 + 7
 
 let y=7+x
 
-let result = "The result is: " + y
+let result = ("The result is: " + y)
 
 let check = x == 12
 
-let condition = if(y == 15 + 4, "pass", "fail")
+let condition = if( (15 + 4) == y, "pass", "fail")
 
 
 

@@ -123,6 +123,15 @@ public class Parser {
             } else {
                 return readExpression(new Variable(word));
             }
+        } else if(begin instanceof OperatorToken){
+            String op = begin.getValue();
+
+            if("(".equals(op)) {
+                return readExpression(readExpression());
+            } else {
+                throw syntaxError(begin, "expression");
+            }
+
         } else {
             throw syntaxError(begin, "expression");
         }
