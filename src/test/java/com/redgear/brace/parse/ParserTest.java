@@ -42,6 +42,14 @@ public class ParserTest {
         }
     }
 
+    @Test
+    public void evalOnlyTest() {
+
+        Eval eval = new Eval();
+
+        eval.evaluate(new File("src/test/resources/basicAssignmentTest.txt"));
+    }
+
 
     @FunctionalInterface
     private interface CheckedFunc<In, Out> {

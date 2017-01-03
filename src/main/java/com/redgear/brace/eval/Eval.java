@@ -1,10 +1,18 @@
 package com.redgear.brace.eval;
 
 import com.redgear.brace.ast.*;
+import com.redgear.brace.lex.Lexer;
+import com.redgear.brace.lex.Token;
+import com.redgear.brace.parse.Parser;
 import com.redgear.brace.walk.Walker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -16,6 +24,7 @@ import java.util.stream.Collectors;
 public class Eval implements Walker {
 
     private static final Logger log = LoggerFactory.getLogger(Eval.class);
+    private File moduleFile;
     private Deque<Object> stack = new LinkedList<>();
     private LibraryScope libraryScope;
     private ModuleScope moduleScope;
@@ -104,6 +113,27 @@ public class Eval implements Walker {
         });
     }
 
+    public ModuleScope evaluate(File file) {
+        moduleFile = file;
+        Module mod;
+
+        try(FileReader fileReader = new FileReader(file);
+            BufferedReader bufferedReader = new BufferedReader(fileReader)) {
+
+            log.info("Reading file: {}", file);
+            List<Token> tokens = new Lexer(bufferedReader).tokenize().collect(Collectors.toList());
+
+            mod = new Parser(tokens.iterator()).readModule();
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        walk(mod);
+
+        return moduleScope;
+    }
+
     @Override
     public void walk(Assignment assignment) {
         String var = assignment.getVar().getName();
@@ -165,6 +195,32 @@ public class Eval implements Walker {
     @Override
     public void walk(Func func) {
         stack.push(func);
+    }
+
+    @Override
+    public void walk(Import im) {
+
+        if (!libraryScope.hasModule(im.getId())) {
+
+            String fullPath = moduleFile.toPath().resolveSibling(im.getId()).toString();
+
+            if (!libraryScope.hasModule(fullPath)) {
+                File oldFile = moduleFile;
+                ModuleScope oldScope = moduleScope;
+
+                evaluate(new File(fullPath));
+
+                moduleFile = oldFile;
+                moduleScope = oldScope;
+            }
+        }
+
+    }
+
+    @Override
+    public void walk(Export ex) {
+        walk(ex.getExpression());
+        moduleScope.putValue(ex.getName(), stack.pop());
     }
 
     public interface LibFunc extends BiFunction<Scope, List<Object>, Object> {

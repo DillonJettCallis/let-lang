@@ -73,4 +73,14 @@ public class Visualizer extends PrintingWalker {
     public void walk(Func func) {
 
     }
+
+    @Override
+    public void walk(Import im) {
+
+    }
+
+    @Override
+    public void walk(Export ex) {
+
+    }
 }

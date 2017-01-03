@@ -36,4 +36,7 @@ public class LibraryScope implements Scope {
         values.put(id, value);
     }
 
+    public boolean hasModule(String id) {
+        return modules.containsKey(id);
+    }
 }

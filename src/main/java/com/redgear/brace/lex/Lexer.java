@@ -1,13 +1,12 @@
 package com.redgear.brace.lex;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.Spliterator;
-import java.util.Spliterators;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -17,9 +16,11 @@ import java.util.stream.StreamSupport;
  */
 public class Lexer {
 
+    private static final Logger log = LoggerFactory.getLogger(Lexer.class);
     private final Reader reader;
     private static final String sticky = "+-*/=&|<>!";
     private static final String ops = ".,;(){}[]" + sticky;
+    private static final Set<String> keywords = new HashSet<>(Arrays.asList("let", "export", "import"));
     private final Deque<String> braceBalence = new LinkedList<>();
     private char latest = ' ';
     private int row = 1;
@@ -59,7 +60,7 @@ public class Lexer {
                 } else if (Character.isJavaIdentifierStart(latest)) {
                     WordToken word = readWord(location());
 
-                    if("let".equals(word.getValue())) {
+                    if(keywords.contains(word.getValue())) {
                         action.accept(new OperatorToken(word.getLocation(), ";"));
                     }
 
@@ -75,8 +76,6 @@ public class Lexer {
         }, false);
     }
 
-
-    @SuppressWarnings("Duplicates")
     private void eatChar() {
         if(finished)
             return;

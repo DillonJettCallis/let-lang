@@ -163,4 +163,14 @@ public class JavascriptTranspiler extends PrintingWalker {
         indent--;
         print(printIndent(), "}");
     }
+
+    @Override
+    public void walk(Import im) {
+
+    }
+
+    @Override
+    public void walk(Export ex) {
+
+    }
 }

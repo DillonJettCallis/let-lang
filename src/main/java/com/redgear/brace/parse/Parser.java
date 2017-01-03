@@ -99,6 +99,10 @@ public class Parser {
 
             if("let".equals(word)) {
                 return readAssignment();
+            } else if("import".equals(word)){
+                return readImport();
+            } else if("export".equals(word)){
+                return readExport();
             } else {
                 backFill(begin);
                 return readExpression();
@@ -253,8 +257,17 @@ public class Parser {
 
         while(!"}".equals(latest.getValue())) {
             Expression ex = readStatement();
-            if(ex != null)
+            if(ex != null) {
+                if(ex instanceof Import) {
+                    throw syntaxError(ex.getLocation(), "statements", "import");
+                }
+
+                if(ex instanceof Export) {
+                    throw syntaxError(ex.getLocation(), "statements", "export");
+                }
+
                 statements.add(ex);
+            }
         }
 
         verifyImmutable(statements);
@@ -262,10 +275,44 @@ public class Parser {
         return new Func(start, args, statements);
     }
 
+    private Import readImport() {
+        WordToken name = nextType(WordToken.class, "identifier");
+
+        WordToken from = nextType(WordToken.class, "from");
+
+        if(!"from".equals(from.getValue())) {
+            throw syntaxError(from, "from");
+        }
+
+        LiteralToken module = nextType(LiteralToken.class, "module");
+
+        if (!(module.getRealValue() instanceof String)) {
+            throw syntaxError(module, "module");
+        }
+
+        return new Import(name.getLocation(), new ModuleRef(name.getValue()), module.getValue());
+    }
+
+    private Export readExport() {
+        WordToken name = nextType(WordToken.class, "identifier");
+        String value = name.getValue();
+
+        OperatorToken assign = nextType(OperatorToken.class, "=");
+
+        if(";".equals(assign.getValue())) {
+            return new Export(name.getLocation(), value, new Variable(name.getLocation(), value));
+        } else if("=".equals(assign.getValue())) {
+            return new Export(name.getLocation(), value, readExpression());
+        } else {
+            throw syntaxError(assign, "=");
+        }
+    }
+
     private void verifyImmutable(List<Expression> statements) {
         List<Assignment> assigns = statements.stream()
                 .filter(ex -> ex instanceof Assignment)
                 .map(ex -> (Assignment) ex)
+                .filter(ex -> !"_".equals(ex.getVar().getName()))
                 .collect(Collectors.toList());
 
         Set<String> varNames = new HashSet<>();

@@ -56,3 +56,14 @@ let invert = if(! (1 == 1), "fail", "pass")
 let another = sum(-1, -2 - -5)
 
 
+import SomeLib from "./someLib.let"
+
+
+let _ = multiply(3, 4)
+
+
+let _ = divide(12, 3)
+
+
+
+

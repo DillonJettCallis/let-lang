@@ -27,6 +27,10 @@ public interface Walker {
             walk((Call) expression);
         } else if(expression instanceof Func) {
             walk((Func) expression);
+        } else if(expression instanceof Import) {
+            walk((Import) expression);
+        } else if(expression instanceof Export) {
+            walk((Export) expression);
         } else {
             throw new RuntimeException("Unknown type: " + expression);
         }
@@ -44,5 +48,9 @@ public interface Walker {
     void walk(Call call);
 
     void walk(Func func);
+
+    void walk(Import im);
+
+    void walk(Export ex);
 
 }
