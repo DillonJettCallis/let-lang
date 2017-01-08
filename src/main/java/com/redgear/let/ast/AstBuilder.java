@@ -79,20 +79,18 @@ public class AstBuilder {
         }
     }
 
-    private Func build(FunctionExpressionContext context) {
+    private Lambda build(FunctionExpressionContext context) {
         List<Variable> args = context.LocalIdentifier().stream().map(this::makeVariable).collect(Collectors.toList());
 
         List<Expression> expressions = context.expression().stream().map(this::build).collect(Collectors.toList());
 
-        return new Func(new Location(context.getStart()), args, expressions);
+        return new Lambda(new Location(context.getStart()), args, expressions);
     }
 
     private Call build(CallExpressionContext context) {
-        List<Expression> expressions = context.expression().stream().map(this::build).collect(Collectors.toList());
+        List<Expression> args = context.args.stream().map(this::build).collect(Collectors.toList());
 
-        Expression method = expressions.get(0);
-
-        List<Expression> args = expressions.subList(1, expressions.size());
+        Expression method = build(context.method);
 
         return new Call(new Location(context.start), method, args);
     }
@@ -148,7 +146,23 @@ public class AstBuilder {
 
         String value = body.substring(1, body.length() - 1);
 
-        return new Literal(new Location(context.getStart()), value);
+        Location location = new Location(context.getStart());
+
+        return new Literal(location, value);
+    }
+
+    private Call build(MapLiteralExpressionContext context) {
+        Location location = new Location(context.getStart());
+        List<Expression> expressions = context.expression().stream().map(this::build).collect(Collectors.toList());
+
+        return new Call(location, buildQualifiedFunc(location, "Map", "build"), expressions);
+    }
+
+    private Call build(ListLiteralExpressionContext context) {
+        Location location = new Location(context.getStart());
+        List<Expression> expressions = context.expression().stream().map(this::build).collect(Collectors.toList());
+
+        return new Call(location, buildQualifiedFunc(location, "List", "build"), expressions);
     }
 
     private Expression build(StatementContext context) {
@@ -174,12 +188,23 @@ public class AstBuilder {
                 .orElse(() -> build(context, this::build, IntLiteralExpressionContext.class))
                 .orElse(() -> build(context, this::build, FloatLiteralExpressionContext.class))
                 .orElse(() -> build(context, this::build, StringLiteralExpressionContext.class))
+                .orElse(() -> build(context, this::build, MapLiteralExpressionContext.class))
+                .orElse(() -> build(context, this::build, ListLiteralExpressionContext.class))
                 .get().orElseThrow(() -> new RuntimeException("No matching builder for ExpressionContext of type: " + context.getClass()));
 
     }
 
     private Variable makeVariable(TerminalNode node) {
         return new Variable(new Location(node.getSymbol()), node.getText());
+    }
+
+    private Call buildQualifiedFunc(Location location, String module, String function) {
+        Variable modVar = new Variable(location, module);
+        Literal funVar = new Literal(location, function);
+
+        Variable dotAccess = new Variable(location, ".");
+
+        return new Call(location, dotAccess, Arrays.asList(modVar, funVar));
     }
 
     private <T extends ParserRuleContext> Optional<Expression> build(ParserRuleContext context, Function<T, Expression> func, Class<T> clazz) {

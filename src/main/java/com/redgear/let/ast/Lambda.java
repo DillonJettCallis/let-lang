@@ -10,17 +10,17 @@ import java.util.stream.Collectors;
 /**
  * Created by LordBlackHole on 2017-01-01.
  */
-public class Func implements Expression {
+public class Lambda implements Expression {
 
     private final Location location;
     private final List<Variable> variables;
     private final List<Expression> statements;
 
-    public Func(Location location) {
+    public Lambda(Location location) {
         this(location, new ArrayList<>(), new ArrayList<>());
     }
 
-    public Func(Location location, List<Variable> variables, List<Expression> statements) {
+    public Lambda(Location location, List<Variable> variables, List<Expression> statements) {
         this.location = location;
         this.variables = variables;
         this.statements = statements;
@@ -57,7 +57,7 @@ public class Func implements Expression {
 
     @Override
     public String toString() {
-        return "{\"className\": \"" + Func.class + "\"" +
+        return "{\"className\": \"" + Lambda.class + "\"" +
                 ",\"location\": \"" + location + "\"" +
                 ",\"variables\": \"" + variables + "\"" +
                 ",\"statements\": \"" + statements + "\"" +

@@ -1,15 +1,16 @@
 
 # This is a comment
 
-let x = 5 + 7
+
+let x = 5 + 7 * 2
 
 let y=7+x
 
-let result = ("The result is: " + y)
+let result = ('The result is: ' + y)
 
 let check = x == 12
 
-let condition = if( (15 + 4) == y, "pass", "fail")
+let condition = if( (15 + 4) == y, 'pass', 'fail')
 
 let sum = { l, r =>
 	let ans = l + r
@@ -24,7 +25,7 @@ let recurse = { num, times, ans =>
 
 let mul = recurse(3, 4, 0)
 
-let complexTest = if( (mul == 10) || (num == 10), "pass", "fail")
+let complexTest = if( (mul == 10) || (num == 10), 'pass', 'fail')
 
 
 let pow = 2 ** 4
@@ -35,7 +36,7 @@ let op = { num, fun => fun(num) * fun(num) }
 
 let higher = op(2, double)
 
-let _ = print("This is a test: ", higher)
+let _ = print('This is a test: ', higher)
 
 let cons = 1
 
@@ -46,14 +47,14 @@ let sub = 2 + neg
 let negMul = 3 * -2
 
 
-let invert = if(! (1 == 1), "fail", "pass")
+let invert = if(! (1 == 1), 'fail', 'pass')
 
 
 let another = sum(-1, -2 - -5)
 
 
-import SomeLib from "./someLib.let"
-import OtherLib from "./otherLib.let"
+import SomeLib from './someLib.let'
+import OtherLib from './otherLib.let'
 
 let multiplyResult = SomeLib.multiply(3, 4)
 
@@ -63,5 +64,17 @@ let sumResult = sum(5, 3)
 let divideResult = OtherLib.divide(12, 3)
 
 
+let firstMap = ["key": "value", 23: 42]
 
+let getValue = Map.get(firstMap, "key")
+
+
+let nums = [1, 2, 3, 4, 5]
+
+let third = nums::List.get(2)
+
+
+let _ = [1, 2, 3, 4, 5]
+	::List.map({ n => n ** 2})
+	::List.forEach(print)
 

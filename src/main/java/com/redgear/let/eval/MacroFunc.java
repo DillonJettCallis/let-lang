@@ -8,5 +8,5 @@ import java.util.function.BiFunction;
 /**
  * Created by LordBlackHole on 2017-01-07.
  */
-public interface MacroFunc extends BiFunction<LocalScope, List<Expression>, Object> {
+public interface MacroFunc extends BiFunction<LocalScope, List<Expression>, Object>, Func {
 }

@@ -28,7 +28,8 @@ portOut
 expression
  : Let LocalIdentifier '=' expression ';'? # AssignmentExpression
  | '{' (LocalIdentifier (',' LocalIdentifier)* )? '=>' expression+ '}' # FunctionExpression
- | expression '(' (expression (',' expression)*)* ')' # CallExpression
+ | args+=expression '::' method=expression '(' (args+=expression (',' args+=expression)*)? ')' # CallExpression
+ | method=expression '(' (args+=expression (',' args+=expression)*)? ')' # CallExpression
  | expression '.' LocalIdentifier  # ModuleAccessExpression
  | op='-' expression # UnaryOpExpression
  | op='!' expression # UnaryOpExpression
@@ -43,6 +44,8 @@ expression
  | IntLiteral # IntLiteralExpression
  | FloatLiteral # FloatLiteralExpression
  | StringLiteral # StringLiteralExpression
+ | '[' (expression ':' expression (',' expression':' expression)*)? ']' # MapLiteralExpression
+ | '[' (expression (',' expression)*)? ']' # ListLiteralExpression
  | '(' expression+ ')' # ParenthesizedExpression
  ;
 
@@ -102,8 +105,8 @@ FloatLiteral
  ;
 
 StringLiteral
- : '"' ~["]* '"'
- | '\'' ~[']* '\''
+ : '\'' ~[']* '\''
+ | '"' ~["]* '"'
  ;
 
 LineComment

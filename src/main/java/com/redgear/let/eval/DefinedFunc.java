@@ -7,5 +7,5 @@ import java.util.function.Function;
 /**
  * Created by LordBlackHole on 2017-01-08.
  */
-public interface DefinedFunc extends Function<List<Object>, Object> {
+public interface DefinedFunc extends Function<List<Object>, Object>, Func {
 }

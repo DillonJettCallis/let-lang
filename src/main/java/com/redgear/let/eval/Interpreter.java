@@ -26,6 +26,19 @@ public class Interpreter {
         this.mainModule = Paths.get(modulePath).toAbsolutePath();
         this.libraryScope = new LibraryScope();
         new CoreLibrary(this).buildLibrary(libraryScope);
+
+        addLibModule(new MapLibrary());
+        addLibModule(new ListLibrary());
+    }
+
+    private void addLibModule(ModuleDefinition definition) {
+        String name = definition.getName();
+        ModuleScope moduleScope = new ModuleScope(libraryScope);
+
+        definition.buildLibrary(moduleScope);
+
+        modules.put(name, moduleScope);
+        libraryScope.putValue(name, moduleScope);
     }
 
     private String resolveModule(String relativeModule) {

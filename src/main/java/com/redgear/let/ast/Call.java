@@ -1,9 +1,6 @@
 package com.redgear.let.ast;
 
-import com.redgear.let.eval.DefinedFunc;
-import com.redgear.let.eval.LibFunc;
-import com.redgear.let.eval.LocalScope;
-import com.redgear.let.eval.MacroFunc;
+import com.redgear.let.eval.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,34 +56,11 @@ public class Call implements Expression {
             throw new RuntimeException("Undefined method " + method.getLocation().print());
         }
 
-        LocalScope inner = new LocalScope(scope);
-
-
-        if (obj instanceof DefinedFunc) {
-            DefinedFunc func = (DefinedFunc) obj;
-
-            List<Object> args = arguments.stream().map(ex -> ex.eval(scope)).collect(Collectors.toList());
-
-            return func.apply(args);
-        } else if (obj instanceof LibFunc) {
-            try {
-                LibFunc func = (LibFunc) obj;
-
-                List<Object> args = arguments.stream().map(ex -> ex.eval(scope)).collect(Collectors.toList());
-
-                return func.apply(inner, args);
-            } catch (Exception e) {
-                throw new RuntimeException(e.getMessage() + " " + method.getLocation().print(), e);
-            }
-        } else if (obj instanceof MacroFunc) {
-            MacroFunc func = (MacroFunc) obj;
-
-
-            return func.apply(inner, arguments);
+        if(obj instanceof Func) {
+            return Caller.call(scope, (Func) obj, arguments);
         } else {
             throw new RuntimeException("Unknown function type: " + obj.getClass());
         }
-
     }
 
     @Override
