@@ -1,8 +1,5 @@
 package com.redgear.let.ast;
 
-import com.redgear.let.lex.Location;
-
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -10,14 +7,12 @@ import java.util.List;
  */
 public class Module implements Expression {
 
-    private static final Location location = new Location(0, 0);
+    private final Location location;
     private final List<Expression> expressions;
 
-    public Module() {
-        this(new ArrayList<>());
-    }
 
-    public Module(List<Expression> expressions) {
+    public Module(Location location, List<Expression> expressions) {
+        this.location = location;
         this.expressions = expressions;
     }
 

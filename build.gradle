@@ -2,6 +2,7 @@ group 'com.redgear'
 version '1.0-SNAPSHOT'
 
 apply plugin: 'java'
+apply plugin: 'antlr'
 
 sourceCompatibility = 1.8
 
@@ -10,6 +11,8 @@ repositories {
 }
 
 dependencies {
+    antlr 'org.antlr:antlr4:4.6'
+
     compile "org.slf4j:slf4j-api:1.7.21"
 
     compile 'org.apache.commons:commons-lang3:3.5'

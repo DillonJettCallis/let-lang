@@ -1,7 +1,5 @@
 package com.redgear.let.ast;
 
-import com.redgear.let.lex.Location;
-
 /**
  * Created by LordBlackHole on 2017-01-02.
  */

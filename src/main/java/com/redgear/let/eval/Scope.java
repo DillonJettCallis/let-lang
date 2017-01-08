@@ -10,11 +10,11 @@ public interface Scope {
 
     void putValue(String id, Object value);
 
-    default void putFunc(String name, Eval.LibFunc func) {
+    default void putFunc(String name, LibFunc func) {
         putValue(name, func);
     }
 
-    default void putMacroFunc(String name, Eval.MacroFunc func) {
+    default void putMacroFunc(String name, MacroFunc func) {
         putValue(name, func);
     }
 }

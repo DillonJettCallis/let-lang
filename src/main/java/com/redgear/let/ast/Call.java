@@ -1,7 +1,5 @@
 package com.redgear.let.ast;
 
-import com.redgear.let.lex.Location;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,10 +11,6 @@ public class Call implements Expression {
     private final Location location;
     private final Expression method;
     private final List<Expression> arguments;
-
-    public Call(Location location, Expression method) {
-        this(location, method, new ArrayList<>());
-    }
 
     public Call(Location location, Expression method, List<Expression> arguments) {
         this.location = location;

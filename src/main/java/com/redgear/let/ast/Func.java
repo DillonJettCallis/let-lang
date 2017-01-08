@@ -1,7 +1,5 @@
 package com.redgear.let.ast;
 
-import com.redgear.let.lex.Location;
-
 import java.util.ArrayList;
 import java.util.List;
 

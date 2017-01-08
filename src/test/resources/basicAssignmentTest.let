@@ -1,6 +1,5 @@
 
-#This is a comment
-
+# This is a comment
 
 let x = 5 + 7
 
@@ -13,7 +12,7 @@ let check = x == 12
 let condition = if( (15 + 4) == y, "pass", "fail")
 
 let sum = { l, r =>
-	let ans = l + r;
+	let ans = l + r
 }
 
 let num = sum(6, 4)
@@ -61,7 +60,7 @@ let multiplyResult = SomeLib.multiply(3, 4)
 let sumResult = sum(5, 3)
 
 
-let divideResult = if(true, OtherLib.divide, SomeLib.divide)(12, 3)
+let divideResult = OtherLib.divide(12, 3)
 
 
 
