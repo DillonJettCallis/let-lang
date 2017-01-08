@@ -1,6 +1,6 @@
 
 
-export divide = { l, r => l * r}
+export divide = { l, r => l / r}
 
 
 

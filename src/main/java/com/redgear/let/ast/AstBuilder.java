@@ -2,6 +2,7 @@ package com.redgear.let.ast;
 
 import com.redgear.let.antlr.LetParser.*;
 import com.redgear.let.eval.Interpreter;
+import com.redgear.let.util.OptionalWrapper;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.slf4j.Logger;
@@ -9,7 +10,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -216,26 +216,4 @@ public class AstBuilder {
         }
     }
 
-    private static class OptionalWrapper<T> {
-
-        private final Optional<T> optional;
-
-
-        private OptionalWrapper(Optional<T> optional) {
-            this.optional = optional;
-        }
-
-
-        public OptionalWrapper<T> orElse(Supplier<Optional<T>> source) {
-            if(optional.isPresent())
-                return this;
-            else
-                return new OptionalWrapper<>(source.get());
-        }
-
-        public Optional<T> get() {
-            return optional;
-        }
-
-    }
 }

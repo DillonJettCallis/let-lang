@@ -61,7 +61,7 @@ let multiplyResult = SomeLib.multiply(3, 4)
 let sumResult = sum(5, 3)
 
 
-let divideResult = OtherLib.divide(12, 3)
+let divideResult = if(true, OtherLib, SomeLib).divide(12, 3)
 
 
 let firstMap = ["key": "value", 23: 42]
@@ -77,4 +77,13 @@ let third = nums::List.get(2)
 let _ = [1, 2, 3, 4, 5]
 	::List.map({ n => n ** 2})
 	::List.forEach(print)
+
+let _ = print(if(2 > 4, "a", "b"))
+
+
+let l = List.build(3, 4, 5)
+
+let total = nums::List.fold(0, sum)
+
+let product = nums::List.fold(1, SomeLib.multiply)
 

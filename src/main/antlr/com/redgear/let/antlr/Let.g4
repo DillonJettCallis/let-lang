@@ -28,8 +28,8 @@ portOut
 expression
  : Let LocalIdentifier '=' expression ';'? # AssignmentExpression
  | '{' (LocalIdentifier (',' LocalIdentifier)* )? '=>' expression+ '}' # FunctionExpression
- | args+=expression '::' method=expression '(' (args+=expression (',' args+=expression)*)? ')' # CallExpression
  | method=expression '(' (args+=expression (',' args+=expression)*)? ')' # CallExpression
+ | args+=expression '::' method=expression '(' (args+=expression (',' args+=expression)*)? ')' # CallExpression
  | expression '.' LocalIdentifier  # ModuleAccessExpression
  | op='-' expression # UnaryOpExpression
  | op='!' expression # UnaryOpExpression

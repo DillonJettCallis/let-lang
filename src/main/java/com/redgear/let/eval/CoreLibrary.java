@@ -2,10 +2,9 @@ package com.redgear.let.eval;
 
 import com.redgear.let.ast.Expression;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -221,6 +220,93 @@ public class CoreLibrary {
             return !Objects.equals(left, right);
         });
 
+        libraryScope.putFunc("<", (scope, args) -> {
+
+            validateArgs("<", args, 2);
+
+            Object left = args.get(0);
+            Object right = args.get(1);
+
+            if(left == null || right == null) {
+                throw new RuntimeException("Cannot compare against null: ");
+            }
+
+            if(left instanceof Integer && right instanceof Integer) {
+                return (Integer) left < (Integer) right;
+            } else if(left instanceof Number && right instanceof Number) {
+                return ((Number) left).doubleValue() < ((Number) right).doubleValue();
+            } else if(left instanceof String && right instanceof String) {
+                return ((String) left).compareTo((String) right) < 0;
+            } else {
+                throw new RuntimeException("Cannot compare two different values: " + left.getClass() + " < " + right.getClass());
+            }
+        });
+
+        libraryScope.putFunc("<=", (scope, args) -> {
+
+            validateArgs("<=", args, 2);
+
+            Object left = args.get(0);
+            Object right = args.get(1);
+
+            if(left == null || right == null) {
+                throw new RuntimeException("Cannot compare against null: ");
+            }
+
+            if(left instanceof Integer && right instanceof Integer) {
+                return (Integer) left <= (Integer) right;
+            } else if(left instanceof Number && right instanceof Number) {
+                return ((Number) left).doubleValue() <= ((Number) right).doubleValue();
+            } else if(left instanceof String && right instanceof String) {
+                return ((String) left).compareTo((String) right) <= 0;
+            } else {
+                throw new RuntimeException("Cannot compare two different values: " + left.getClass() + " <= " + right.getClass());
+            }
+        });
+
+        libraryScope.putFunc(">", (scope, args) -> {
+
+            validateArgs(">", args, 2);
+
+            Object left = args.get(0);
+            Object right = args.get(1);
+
+            if(left == null || right == null) {
+                throw new RuntimeException("Cannot compare against null: ");
+            }
+
+            if(left instanceof Integer && right instanceof Integer) {
+                return (Integer) left > (Integer) right;
+            } else if(left instanceof Number && right instanceof Number) {
+                return ((Number) left).doubleValue() > ((Number) right).doubleValue();
+            } else if(left instanceof String && right instanceof String) {
+                return ((String) left).compareTo((String) right) > 0;
+            } else {
+                throw new RuntimeException("Cannot compare two different values: " + left.getClass() + " > " + right.getClass());
+            }
+        });
+
+        libraryScope.putFunc(">=", (scope, args) -> {
+
+            validateArgs(">=", args, 2);
+
+            Object left = args.get(0);
+            Object right = args.get(1);
+
+            if(left == null || right == null) {
+                throw new RuntimeException("Cannot compare against null: ");
+            }
+
+            if(left instanceof Integer && right instanceof Integer) {
+                return (Integer) left >= (Integer) right;
+            } else if(left instanceof Number && right instanceof Number) {
+                return ((Number) left).doubleValue() >= ((Number) right).doubleValue();
+            } else if(left instanceof String && right instanceof String) {
+                return ((String) left).compareTo((String) right) >= 0;
+            } else {
+                throw new RuntimeException("Cannot compare two different values: " + left.getClass() + " >= " + right.getClass());
+            }
+        });
 
         libraryScope.putFunc("!", (scope, args) -> {
 
@@ -263,9 +349,11 @@ public class CoreLibrary {
 
         libraryScope.putFunc("print", (scope, args) -> {
 
-            System.out.println(args.stream().map(String::valueOf).collect(Collectors.joining()));
+            String output = args.stream().map(String::valueOf).collect(Collectors.joining());
 
-            return null;
+            System.out.println(output);
+
+            return output;
         });
     }
 
@@ -284,6 +372,5 @@ public class CoreLibrary {
             throw new RuntimeException("Wrong number of arguments for function '" + op + "', found: " + args);
         }
     }
-
 
 }
