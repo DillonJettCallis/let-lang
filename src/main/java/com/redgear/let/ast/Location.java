@@ -14,7 +14,7 @@ public class Location {
     }
 
     public String print() {
-        return "At row: " + String.valueOf(token.getStartIndex()) + ", column: " + String.valueOf(token.getLine());
+        return "At row: " + String.valueOf(token.getLine()) + ", column: " + String.valueOf(token.getCharPositionInLine());
     }
 
 }

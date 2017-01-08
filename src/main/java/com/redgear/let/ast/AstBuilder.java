@@ -1,6 +1,7 @@
 package com.redgear.let.ast;
 
 import com.redgear.let.antlr.LetParser.*;
+import com.redgear.let.eval.Interpreter;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.slf4j.Logger;
@@ -17,12 +18,17 @@ import java.util.stream.Collectors;
 public class AstBuilder {
 
     private static final Logger log = LoggerFactory.getLogger(AstBuilder.class);
+    private static final Set<String> keywords = new HashSet<>(Arrays.asList("true", "false"));
+    private final Interpreter interpreter;
 
+    public AstBuilder(Interpreter interpreter) {
+        this.interpreter = interpreter;
+    }
 
-    public Expression build(ModuleContext module) {
+    public Module build(ModuleContext module) {
         List<Expression> expressions = module.statement().stream().map(this::build).collect(Collectors.toList());
 
-        return new Module(new Location(module.getStart()), expressions);
+        return new Module(new Location(module.getStart()),expressions);
     }
 
     private Expression build(ExpressionStatementContext expression) {
@@ -33,9 +39,12 @@ public class AstBuilder {
         PortInContext portIn = context.portIn();
 
         String id = portIn.ModuleIdentifier().getText();
-        String file = portIn.StringLiteral().getText();
 
-        return new Import(new Location(context.getStart()), id, file);
+        String body = portIn.StringLiteral().getText();
+
+        String value = body.substring(1, body.length() - 1);
+
+        return new Import(new Location(context.getStart()), interpreter, id, value);
     }
 
     private Expression build(ExportStatementContext portOut) {
@@ -56,12 +65,18 @@ public class AstBuilder {
         }
     }
 
-    private Assignment build(AssignmentExpressionContext context) {
+    private Expression build(AssignmentExpressionContext context) {
         Variable var = makeVariable(context.LocalIdentifier());
 
         Expression ex = build(context.expression());
 
-        return new Assignment(new Location(context.getStart()), var, ex);
+        if("_".equals(var.getName())) {
+            return ex;
+        } else if(keywords.contains(var.getName())) {
+            throw new RuntimeException("Can't assign to: " + var.getName() + " " + var.getLocation().print());
+        } else {
+            return new Assignment(new Location(context.getStart()), var, ex);
+        }
     }
 
     private Func build(FunctionExpressionContext context) {
@@ -77,9 +92,16 @@ public class AstBuilder {
 
         Expression method = expressions.get(0);
 
-        List<Expression> args = expressions.subList(0, expressions.size() - 1);
+        List<Expression> args = expressions.subList(1, expressions.size());
 
         return new Call(new Location(context.start), method, args);
+    }
+
+    private Call build(ModuleAccessExpressionContext context) {
+        Expression ex = build(context.expression());
+        Literal var = new Literal(new Location(context.LocalIdentifier().getSymbol()), context.LocalIdentifier().getText());
+
+        return new Call(new Location(context.getStart()), new Variable(var.getLocation(), "."), Arrays.asList(ex, var));
     }
 
     private Call build(UnaryOpExpressionContext context) {
@@ -96,7 +118,7 @@ public class AstBuilder {
         Expression left  = build(context.expression(0));
         Expression right = build(context.expression(1));
 
-        return new Call(new Location(context.getStart()), var, Arrays.asList(left, right));
+        return new Call(new Location(context.op), var, Arrays.asList(left, right));
     }
 
     private Parenthesized build(ParenthesizedExpressionContext context) {
@@ -122,7 +144,11 @@ public class AstBuilder {
     }
 
     private Literal build(StringLiteralExpressionContext context) {
-        return new Literal(new Location(context.getStart()), context.StringLiteral().getText());
+        String body = context.StringLiteral().getText();
+
+        String value = body.substring(1, body.length() - 1);
+
+        return new Literal(new Location(context.getStart()), value);
     }
 
     private Expression build(StatementContext context) {
@@ -139,6 +165,7 @@ public class AstBuilder {
         return new OptionalWrapper<>(build(context, this::build, AssignmentExpressionContext.class))
                 .orElse(() -> build(context, this::build, FunctionExpressionContext.class))
                 .orElse(() -> build(context, this::build, CallExpressionContext.class))
+                .orElse(() -> build(context, this::build, ModuleAccessExpressionContext.class))
                 .orElse(() -> build(context, this::build, UnaryOpExpressionContext.class))
                 .orElse(() -> build(context, this::build, BinaryOpExpressionContext.class))
                 .orElse(() -> build(context, this::build, ParenthesizedExpressionContext.class))

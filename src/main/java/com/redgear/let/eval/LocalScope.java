@@ -1,6 +1,8 @@
 package com.redgear.let.eval;
 
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 
 /**
@@ -17,15 +19,6 @@ public class LocalScope implements Scope {
     }
 
     @Override
-    public Object getValue(String module, String id) {
-        if(module == null) {
-            return getValue(id);
-        } else {
-            return local.getValue(module, id);
-        }
-    }
-
-    @Override
     public Object getValue(String id) {
         if(values.containsKey(id)) {
             return values.get(id);
@@ -37,6 +30,15 @@ public class LocalScope implements Scope {
     @Override
     public void putValue(String id, Object value) {
         values.put(id, value);
+    }
+
+    @Override
+    public LibraryScope getLibraryScope() {
+        return local.getLibraryScope();
+    }
+
+    public void exportValue(String id, Object value) {
+        local.exportValue(id, value);
     }
 
 }

@@ -8,22 +8,11 @@ import java.util.Map;
  */
 public class ModuleScope implements Scope {
 
-    private final String name;
     private final LibraryScope scope;
     private Map<String, Object> values = new HashMap<>();
 
-    public ModuleScope(String name, LibraryScope scope) {
-        this.name = name;
+    public ModuleScope(LibraryScope scope) {
         this.scope = scope;
-    }
-
-    @Override
-    public Object getValue(String module, String id) {
-        if("this".equals(module) || name.equals(module)) {
-            return getValue(id);
-        } else {
-            return scope.getValue(module, id);
-        }
     }
 
     @Override
@@ -40,7 +29,14 @@ public class ModuleScope implements Scope {
         values.put(id, value);
     }
 
-    public String getName() {
-        return name;
+    @Override
+    public LibraryScope getLibraryScope() {
+        return scope;
     }
+
+    @Override
+    public void exportValue(String id, Object value) {
+        values.put(id, value);
+    }
+
 }

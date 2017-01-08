@@ -1,5 +1,8 @@
 package com.redgear.let.ast;
 
+import com.redgear.let.eval.LocalScope;
+import com.redgear.let.eval.ModuleScope;
+
 import java.util.List;
 
 /**
@@ -16,6 +19,7 @@ public class Module implements Expression {
         this.expressions = expressions;
     }
 
+
     public List<Expression> getExpressions() {
         return expressions;
     }
@@ -23,8 +27,19 @@ public class Module implements Expression {
     @Override
     public String toString() {
         return "{\"className\": \"" + Module.class + "\"" +
+                ",\"location\": \"" + location + "\"" +
                 ",\"expressions\": \"" + expressions + "\"" +
                 '}';
+    }
+
+    @Override
+    public Object eval(LocalScope scope) {
+        ModuleScope moduleScope = new ModuleScope(scope.getLibraryScope());
+        LocalScope newLocal = new LocalScope(moduleScope);
+
+        expressions.forEach(ex -> ex.eval(newLocal));
+
+        return moduleScope;
     }
 
     @Override

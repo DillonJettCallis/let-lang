@@ -1,6 +1,7 @@
 package com.redgear.let.antlr;
 
 import com.redgear.let.ast.AstBuilder;
+import com.redgear.let.eval.Interpreter;
 import org.antlr.v4.runtime.ANTLRFileStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.junit.Test;
@@ -19,19 +20,8 @@ public class AntlrTest {
     @Test
     public void basicAntlrTest() throws IOException {
 
-        ANTLRFileStream fileStream = new ANTLRFileStream("src/test/resources/basicAssignmentTest.let", "UTF-8");
+        new Interpreter("src/test/resources/basicAssignmentTest.let").run();
 
-        LetLexer lexer = new LetLexer(fileStream);
-
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-
-        LetParser parser = new LetParser(tokens);
-
-        LetParser.ModuleContext module = parser.module();
-
-        AstBuilder eval = new AstBuilder();
-
-        eval.build(module);
     }
 
 

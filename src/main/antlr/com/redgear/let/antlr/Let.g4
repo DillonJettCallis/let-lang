@@ -29,7 +29,7 @@ expression
  : Let LocalIdentifier '=' expression ';'? # AssignmentExpression
  | '{' (LocalIdentifier (',' LocalIdentifier)* )? '=>' expression+ '}' # FunctionExpression
  | expression '(' (expression (',' expression)*)* ')' # CallExpression
- | expression op='.' expression  # BinaryOpExpression
+ | expression '.' LocalIdentifier  # ModuleAccessExpression
  | op='-' expression # UnaryOpExpression
  | op='!' expression # UnaryOpExpression
  | expression op=('*' | '/' | '**') expression # BinaryOpExpression
@@ -38,12 +38,12 @@ expression
  | expression op=('==' | '!=') expression # BinaryOpExpression
  | expression op='&&' expression # BinaryOpExpression
  | expression op='||' expression # BinaryOpExpression
- | '(' expression+ ')' # ParenthesizedExpression
  | ModuleIdentifier # ModuleIdentifierExpression
  | LocalIdentifier # LocalIdentifierExpression
  | IntLiteral # IntLiteralExpression
  | FloatLiteral # FloatLiteralExpression
  | StringLiteral # StringLiteralExpression
+ | '(' expression+ ')' # ParenthesizedExpression
  ;
 
 BinaryOp
