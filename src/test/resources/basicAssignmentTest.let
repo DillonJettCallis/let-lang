@@ -64,7 +64,7 @@ let sumResult = sum(5, 3)
 let divideResult = if(true, OtherLib, SomeLib).divide(12, 3)
 
 
-let firstMap = ["key": "value", 23: 42]
+let firstMap = ["key" -> "value", 23 -> 42]
 
 let getValue = Map.get(firstMap, "key")
 

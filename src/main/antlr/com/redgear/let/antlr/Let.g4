@@ -44,7 +44,7 @@ expression
  | IntLiteral # IntLiteralExpression
  | FloatLiteral # FloatLiteralExpression
  | StringLiteral # StringLiteralExpression
- | '[' (expression ':' expression (',' expression':' expression)*)? ']' # MapLiteralExpression
+ | '[' (expression '->' expression (',' expression'->' expression)*)? ']' # MapLiteralExpression
  | '[' (expression (',' expression)*)? ']' # ListLiteralExpression
  | '(' expression+ ')' # ParenthesizedExpression
  ;
