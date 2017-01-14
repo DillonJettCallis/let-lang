@@ -2,8 +2,7 @@ package com.redgear.let.ast;
 
 import com.redgear.let.eval.LocalScope;
 import com.redgear.let.eval.ModuleScope;
-
-import java.util.List;
+import javaslang.collection.List;
 
 /**
  * Created by LordBlackHole on 2016-12-30.

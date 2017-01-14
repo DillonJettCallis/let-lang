@@ -1,11 +1,9 @@
 package com.redgear.let.eval;
 
 import com.redgear.let.ast.Expression;
+import javaslang.collection.List;
 
-import java.util.*;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 /**
  * Created by LordBlackHole on 2017-01-02.
@@ -349,7 +347,7 @@ public class CoreLibrary {
 
         libraryScope.putFunc("print", (scope, args) -> {
 
-            String output = args.stream().map(String::valueOf).collect(Collectors.joining());
+            String output = args.mkString();
 
             System.out.println(output);
 

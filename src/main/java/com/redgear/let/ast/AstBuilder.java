@@ -2,15 +2,16 @@ package com.redgear.let.ast;
 
 import com.redgear.let.antlr.LetParser.*;
 import com.redgear.let.eval.Interpreter;
-import com.redgear.let.util.OptionalWrapper;
-import org.antlr.v4.runtime.ParserRuleContext;
+import javaslang.collection.HashSet;
+import javaslang.collection.List;
+import javaslang.collection.Set;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import static javaslang.API.Case;
+import static javaslang.API.Match;
+import static javaslang.Predicates.instanceOf;
 
 /**
  * Created by LordBlackHole on 2017-01-07.
@@ -18,7 +19,7 @@ import java.util.stream.Collectors;
 public class AstBuilder {
 
     private static final Logger log = LoggerFactory.getLogger(AstBuilder.class);
-    private static final Set<String> keywords = new HashSet<>(Arrays.asList("true", "false"));
+    private static final Set<String> keywords = HashSet.of("true", "false");
     private final Interpreter interpreter;
 
     public AstBuilder(Interpreter interpreter) {
@@ -26,7 +27,7 @@ public class AstBuilder {
     }
 
     public Module build(ModuleContext module) {
-        List<Expression> expressions = module.statement().stream().map(this::build).collect(Collectors.toList());
+        List<Expression> expressions = List.ofAll(module.statement()).map(this::build);
 
         return new Module(new Location(module.getStart()),expressions);
     }
@@ -80,15 +81,15 @@ public class AstBuilder {
     }
 
     private Lambda build(FunctionExpressionContext context) {
-        List<Variable> args = context.LocalIdentifier().stream().map(this::makeVariable).collect(Collectors.toList());
+        List<Variable> args = List.ofAll(context.LocalIdentifier()).map(this::makeVariable);
 
-        List<Expression> expressions = context.expression().stream().map(this::build).collect(Collectors.toList());
+        List<Expression> expressions = List.ofAll(context.expression()).map(this::build);
 
         return new Lambda(new Location(context.getStart()), args, expressions);
     }
 
     private Call build(CallExpressionContext context) {
-        List<Expression> args = context.args.stream().map(this::build).collect(Collectors.toList());
+        List<Expression> args = List.ofAll(context.args).map(this::build);
 
         Expression method = build(context.method);
 
@@ -99,7 +100,7 @@ public class AstBuilder {
         Expression ex = build(context.expression());
         Literal var = new Literal(new Location(context.LocalIdentifier().getSymbol()), context.LocalIdentifier().getText());
 
-        return new Call(new Location(context.getStart()), new Variable(var.getLocation(), "."), Arrays.asList(ex, var));
+        return new Call(new Location(context.getStart()), new Variable(var.getLocation(), "."), List.of(ex, var));
     }
 
     private Call build(UnaryOpExpressionContext context) {
@@ -107,7 +108,7 @@ public class AstBuilder {
 
         Expression ex = build(context.expression());
 
-        return new Call(new Location(context.getStart()), var, Collections.singletonList(ex));
+        return new Call(new Location(context.getStart()), var, List.of(ex));
     }
 
     private Call build(BinaryOpExpressionContext context) {
@@ -116,11 +117,11 @@ public class AstBuilder {
         Expression left  = build(context.expression(0));
         Expression right = build(context.expression(1));
 
-        return new Call(new Location(context.op), var, Arrays.asList(left, right));
+        return new Call(new Location(context.op), var, List.of(left, right));
     }
 
     private Parenthesized build(ParenthesizedExpressionContext context) {
-        List<Expression> expressions = context.expression().stream().map(this::build).collect(Collectors.toList());
+        List<Expression> expressions = List.ofAll(context.expression()).map(this::build);
 
         return new Parenthesized(new Location(context.getStart()), expressions);
     }
@@ -153,45 +154,46 @@ public class AstBuilder {
 
     private Call build(MapLiteralExpressionContext context) {
         Location location = new Location(context.getStart());
-        List<Expression> expressions = context.expression().stream().map(this::build).collect(Collectors.toList());
+        List<Expression> expressions = List.ofAll(context.expression()).map(this::build);
 
         return new Call(location, buildQualifiedFunc(location, "Map", "build"), expressions);
     }
 
     private Call build(ListLiteralExpressionContext context) {
         Location location = new Location(context.getStart());
-        List<Expression> expressions = context.expression().stream().map(this::build).collect(Collectors.toList());
+        List<Expression> expressions = List.ofAll(context.expression()).map(this::build);
 
         return new Call(location, buildQualifiedFunc(location, "List", "build"), expressions);
     }
 
     private Expression build(StatementContext context) {
 
-        return new OptionalWrapper<>(build(context, this::build, ImportStatementContext.class))
-                .orElse(() -> build(context, this::build, ExportStatementContext.class))
-                .orElse(() -> build(context, this::build, ExpressionStatementContext.class))
-                .get().orElseThrow(() -> new RuntimeException("No matching builder for StatementContext of type: " + context.getClass()));
 
+        return Match(context).of(
+                Case(instanceOf(ImportStatementContext.class), this::build),
+                Case(instanceOf(ExportStatementContext.class), this::build),
+                Case(instanceOf(ExpressionStatementContext.class), this::build)
+        );
     }
 
     private Expression build(ExpressionContext context) {
 
-        return new OptionalWrapper<>(build(context, this::build, AssignmentExpressionContext.class))
-                .orElse(() -> build(context, this::build, FunctionExpressionContext.class))
-                .orElse(() -> build(context, this::build, CallExpressionContext.class))
-                .orElse(() -> build(context, this::build, ModuleAccessExpressionContext.class))
-                .orElse(() -> build(context, this::build, UnaryOpExpressionContext.class))
-                .orElse(() -> build(context, this::build, BinaryOpExpressionContext.class))
-                .orElse(() -> build(context, this::build, ParenthesizedExpressionContext.class))
-                .orElse(() -> build(context, this::build, LocalIdentifierExpressionContext.class))
-                .orElse(() -> build(context, this::build, ModuleIdentifierExpressionContext.class))
-                .orElse(() -> build(context, this::build, IntLiteralExpressionContext.class))
-                .orElse(() -> build(context, this::build, FloatLiteralExpressionContext.class))
-                .orElse(() -> build(context, this::build, StringLiteralExpressionContext.class))
-                .orElse(() -> build(context, this::build, MapLiteralExpressionContext.class))
-                .orElse(() -> build(context, this::build, ListLiteralExpressionContext.class))
-                .get().orElseThrow(() -> new RuntimeException("No matching builder for ExpressionContext of type: " + context.getClass()));
-
+        return Match(context).of(
+                Case(instanceOf(AssignmentExpressionContext.class), this::build),
+                Case(instanceOf(FunctionExpressionContext.class), this::build),
+                Case(instanceOf(CallExpressionContext.class), this::build),
+                Case(instanceOf(ModuleAccessExpressionContext.class), this::build),
+                Case(instanceOf(UnaryOpExpressionContext.class), this::build),
+                Case(instanceOf(BinaryOpExpressionContext.class), this::build),
+                Case(instanceOf(ParenthesizedExpressionContext.class), this::build),
+                Case(instanceOf(LocalIdentifierExpressionContext.class), this::build),
+                Case(instanceOf(ModuleIdentifierExpressionContext.class), this::build),
+                Case(instanceOf(IntLiteralExpressionContext.class), this::build),
+                Case(instanceOf(FloatLiteralExpressionContext.class), this::build),
+                Case(instanceOf(StringLiteralExpressionContext.class), this::build),
+                Case(instanceOf(MapLiteralExpressionContext.class), this::build),
+                Case(instanceOf(ListLiteralExpressionContext.class), this::build)
+        );
     }
 
     private Variable makeVariable(TerminalNode node) {
@@ -204,16 +206,6 @@ public class AstBuilder {
 
         Variable dotAccess = new Variable(location, ".");
 
-        return new Call(location, dotAccess, Arrays.asList(modVar, funVar));
+        return new Call(location, dotAccess, List.of(modVar, funVar));
     }
-
-    private <T extends ParserRuleContext> Optional<Expression> build(ParserRuleContext context, Function<T, Expression> func, Class<T> clazz) {
-
-        if(clazz.isInstance(context)){
-            return Optional.of(func.apply(clazz.cast(context)));
-        } else {
-            return Optional.empty();
-        }
-    }
-
 }

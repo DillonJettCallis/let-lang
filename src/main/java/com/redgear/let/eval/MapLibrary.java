@@ -1,7 +1,9 @@
 package com.redgear.let.eval;
 
-import java.util.HashMap;
-import java.util.Map;
+
+import javaslang.Tuple;
+import javaslang.collection.List;
+import javaslang.collection.Map;
 
 /**
  * Created by LordBlackHole on 2017-01-08.
@@ -15,16 +17,7 @@ public class MapLibrary implements ModuleDefinition{
 
     public void buildLibrary(ModuleScope moduleScope) {
 
-        moduleScope.putFunc("build", (scope, args) -> {
-
-            Map<Object, Object> map = new HashMap<>();
-
-            for(int i = 0; i < args.size(); i+=2) {
-                map.put(args.get(i), args.get(i + 1));
-            }
-
-            return map;
-        });
+        moduleScope.putFunc("build", (scope, args) -> args.sliding(2, 2).toMap(pair -> Tuple.of(pair.get(0), pair.get(1))));
 
         moduleScope.putFunc("get", (scope, args) -> {
 
@@ -36,15 +29,10 @@ public class MapLibrary implements ModuleDefinition{
             Object second = args.get(1);
 
             if(first instanceof Map) {
-                return ((Map) first).get(second);
+                return ((Map) first).get(second).getOrElse((Object) null);
             } else {
                 throw new RuntimeException("Illegal argument for function Map.get: Expected Map, found: " + (first == null ? "null" : first.getClass()));
             }
-
-
         });
     }
-
-
-
 }

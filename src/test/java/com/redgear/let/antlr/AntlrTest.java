@@ -1,9 +1,6 @@
 package com.redgear.let.antlr;
 
-import com.redgear.let.ast.AstBuilder;
 import com.redgear.let.eval.Interpreter;
-import org.antlr.v4.runtime.ANTLRFileStream;
-import org.antlr.v4.runtime.CommonTokenStream;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

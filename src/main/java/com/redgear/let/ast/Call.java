@@ -1,11 +1,9 @@
 package com.redgear.let.ast;
 
 import com.redgear.let.eval.*;
+import javaslang.collection.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Created by LordBlackHole on 2016-12-30.

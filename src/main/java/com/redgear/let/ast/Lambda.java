@@ -2,10 +2,7 @@ package com.redgear.let.ast;
 
 import com.redgear.let.eval.DefinedFunc;
 import com.redgear.let.eval.LocalScope;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+import javaslang.collection.List;
 
 /**
  * Created by LordBlackHole on 2017-01-01.
@@ -15,10 +12,6 @@ public class Lambda implements Expression {
     private final Location location;
     private final List<Variable> variables;
     private final List<Expression> statements;
-
-    public Lambda(Location location) {
-        this(location, new ArrayList<>(), new ArrayList<>());
-    }
 
     public Lambda(Location location, List<Variable> variables, List<Expression> statements) {
         this.location = location;
@@ -44,7 +37,7 @@ public class Lambda implements Expression {
                 inner.putValue(variables.get(i).getName(), args.get(i));
             }
 
-            List<Object> collect = statements.stream().map(ex -> ex.eval(inner)).collect(Collectors.toList());
+            List<Object> collect = statements.map(ex -> ex.eval(inner));
 
             return collect.get(collect.size() - 1);
         };

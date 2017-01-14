@@ -1,8 +1,8 @@
 package com.redgear.let.eval;
 
 import com.redgear.let.ast.Expression;
+import javaslang.collection.List;
 
-import java.util.List;
 import java.util.function.BiFunction;
 
 /**

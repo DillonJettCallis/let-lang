@@ -1,6 +1,7 @@
 package com.redgear.let.eval;
 
-import java.util.List;
+import javaslang.collection.List;
+
 import java.util.function.BiFunction;
 
 /**

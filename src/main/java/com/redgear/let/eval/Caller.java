@@ -1,9 +1,8 @@
 package com.redgear.let.eval;
 
 import com.redgear.let.ast.Expression;
+import javaslang.collection.List;
 
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Created by LordBlackHole on 2017-01-08.
@@ -18,13 +17,13 @@ public class Caller {
         if (obj instanceof DefinedFunc) {
             DefinedFunc func = (DefinedFunc) obj;
 
-            List<Object> args = arguments.stream().map(ex -> ex.eval(scope)).collect(Collectors.toList());
+            List<Object> args = arguments.map(ex -> ex.eval(scope));
 
             return func.apply(args);
         } else if (obj instanceof LibFunc) {
             LibFunc func = (LibFunc) obj;
 
-            List<Object> args = arguments.stream().map(ex -> ex.eval(scope)).collect(Collectors.toList());
+            List<Object> args = arguments.map(ex -> ex.eval(scope));
 
             return func.apply(inner, args);
         } else if (obj instanceof MacroFunc) {

@@ -1,12 +1,8 @@
 package com.redgear.let.eval;
 
+import javaslang.collection.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Created by LordBlackHole on 2017-01-08.
@@ -22,7 +18,7 @@ public class ListLibrary implements ModuleDefinition {
 
     @Override
     public void buildLibrary(ModuleScope moduleScope) {
-        moduleScope.putFunc("build", (scope, args) -> args);
+        moduleScope.putFunc("build", (scope, args) -> List.ofAll(args));
 
         moduleScope.putFunc("get", (scope, args) -> {
 
@@ -55,7 +51,7 @@ public class ListLibrary implements ModuleDefinition {
                 List<?> list = ((List) first);
                 Func func = (Func) second;
 
-                list.forEach(obj -> Caller.callEvaluated(scope, func, Collections.singletonList(obj)));
+                list.forEach(obj -> Caller.callEvaluated(scope, func, List.of(obj)));
 
                 return null;
             } else {
@@ -77,14 +73,14 @@ public class ListLibrary implements ModuleDefinition {
                 List<?> list = ((List) first);
                 Func func = (Func) second;
 
-                return list.stream().map(obj -> Caller.callEvaluated(scope, func, Collections.singletonList(obj))).collect(Collectors.toList());
+                return list.map(obj -> Caller.callEvaluated(scope, func, List.of(obj)));
             } else {
                 throw new RuntimeException("Illegal arguments: Expected (list, func) found: (" + first + ", " + second + ")");
             }
 
         });
 
-        moduleScope.putFunc("fold", (LocalScope scope, List<Object> args) -> {
+        moduleScope.putFunc("fold", (scope, args) -> {
 
             if (args.size() > 3 || args.size() == 0) {
                 throw new RuntimeException("Wrong number of arguments for function 'List.fold', found: " + args);
@@ -104,7 +100,7 @@ public class ListLibrary implements ModuleDefinition {
                     Object result = second;
 
                     for (Object item : list) {
-                        result = Caller.callEvaluated(scope, func, Arrays.asList(result, item));
+                        result = Caller.callEvaluated(scope, func, List.of(result, item));
                     }
 
                     return result;

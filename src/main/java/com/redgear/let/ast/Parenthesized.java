@@ -1,9 +1,7 @@
 package com.redgear.let.ast;
 
 import com.redgear.let.eval.LocalScope;
-
-import java.util.List;
-import java.util.stream.Collectors;
+import javaslang.collection.List;
 
 /**
  * Created by LordBlackHole on 2017-01-07.
@@ -17,7 +15,7 @@ public class Parenthesized implements Expression {
     public Parenthesized(Location location, List<Expression> expressions) {
         this.location = location;
         this.expressions = expressions;
-        this.needsScope = expressions.stream().anyMatch(ex -> ex instanceof Assignment);
+        this.needsScope = expressions.find(ex -> ex instanceof Assignment).isDefined();
     }
 
 
@@ -33,7 +31,7 @@ public class Parenthesized implements Expression {
     public Object eval(LocalScope scope) {
         LocalScope inner = needsScope ? new LocalScope(scope) : scope;
 
-        List<Object> collect = expressions.stream().map(ex -> ex.eval(inner)).collect(Collectors.toList());
+        List<Object> collect = expressions.map(ex -> ex.eval(inner));
 
         return collect.get(collect.size() - 1);
     }
