@@ -12,9 +12,7 @@ let check = x == 12
 
 let condition = if( (15 + 4) == y, 'pass', 'fail')
 
-let sum = { l, r =>
-	let ans = l + r
-}
+let sum = { l, r => l + r}
 
 let num = sum(6, 4)
 
@@ -74,16 +72,21 @@ let nums = [1, 2, 3, 4, 5]
 let third = nums::List.get(2)
 
 
-let _ = [1, 2, 3, 4, 5]
-	::List.map({ n => n ** 2})
-	::List.forEach(print)
+let _ = [1, 2, 3, 4, 5] | { n => n ** 2} |! print
 
 let _ = print(if(2 > 4, "a", "b"))
 
 
 let l = List.build(3, 4, 5)
 
-let total = nums::List.fold(0, sum)
 
-let product = nums::List.fold(1, SomeLib.multiply)
+
+let total = l |& SomeLib.multiply
+
+let product = nums | {i => i + 1}  |& SomeLib.multiply
+
+let flat = [1, 2, 3] |/ {i => [i, i]} |& sum :: print()
+
+let r = flat + 1
+
 

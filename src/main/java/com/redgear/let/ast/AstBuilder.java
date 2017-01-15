@@ -2,9 +2,7 @@ package com.redgear.let.ast;
 
 import com.redgear.let.antlr.LetParser.*;
 import com.redgear.let.eval.Interpreter;
-import javaslang.collection.HashSet;
-import javaslang.collection.List;
-import javaslang.collection.Set;
+import javaslang.collection.*;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +18,12 @@ public class AstBuilder {
 
     private static final Logger log = LoggerFactory.getLogger(AstBuilder.class);
     private static final Set<String> keywords = HashSet.of("true", "false");
+    private static final Map<String, String> listOps = HashMap.of(
+            "|", "map",
+            "|/", "flatMap",
+            "|?", "filter",
+            "|!", "forEach",
+            "|&", "fold");
     private final Interpreter interpreter;
 
     public AstBuilder(Interpreter interpreter) {
@@ -112,12 +116,17 @@ public class AstBuilder {
     }
 
     private Call build(BinaryOpExpressionContext context) {
-        Variable var = new Variable(new Location(context.op), context.op.getText());
+        Location opLocation = new Location(context.op);
+        String op = context.op.getText();
+
+        Expression opExpression = listOps.containsKey(op)
+                ? buildQualifiedFunc(opLocation, "List", listOps.get(op).get())
+                : new Variable(opLocation, op);
 
         Expression left  = build(context.expression(0));
         Expression right = build(context.expression(1));
 
-        return new Call(new Location(context.op), var, List.of(left, right));
+        return new Call(opLocation, opExpression, List.of(left, right));
     }
 
     private Parenthesized build(ParenthesizedExpressionContext context) {

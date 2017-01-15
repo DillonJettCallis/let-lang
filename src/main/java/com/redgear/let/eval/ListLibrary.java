@@ -80,39 +80,78 @@ public class ListLibrary implements ModuleDefinition {
 
         });
 
+        moduleScope.putFunc("flatMap", (scope, args) -> {
+
+            if (args.size() != 2) {
+                throw new RuntimeException("Wrong number of arguments for function 'List.flatMap', found: " + args);
+            }
+
+            Object first = args.get(0);
+            Object second = args.get(1);
+
+            if (first instanceof List && second instanceof Func) {
+                List<?> list = ((List) first);
+                Func func = (Func) second;
+
+                return list.flatMap(obj -> (Iterable<?>) Caller.callEvaluated(scope, func, List.of(obj)));
+            } else {
+                throw new RuntimeException("Illegal arguments: Expected (list, func) found: (" + first + ", " + second + ")");
+            }
+
+        });
+
         moduleScope.putFunc("fold", (scope, args) -> {
 
             if (args.size() > 3 || args.size() == 0) {
                 throw new RuntimeException("Wrong number of arguments for function 'List.fold', found: " + args);
             }
 
+            if(args.size() == 3){
+                Object first = args.get(0);
+                Object second = args.get(1);
+                Object third = args.get(2);
+
+                if (first instanceof List && third instanceof Func) {
+                    List<Object> list = (List) first;
+                    Func func = (Func) third;
+
+                    return list.foldRight(second, (l, r) -> Caller.callEvaluated(scope, func, List.of(l, r)));
+                } else {
+                    throw new RuntimeException("Illegal arguments: Expected (list, start, func) found: " + first + ", " + second + ", " + third + "}");
+                }
+            } else {
+                Object first = args.get(0);
+                Object second = args.get(1);
+
+                if (first instanceof List && second instanceof Func) {
+                    List<Object> list = (List) first;
+                    Func func = (Func) second;
+
+                    return list.tail().foldRight(list.head(), (l, r) -> Caller.callEvaluated(scope, func, List.of(l, r)));
+                } else {
+                    throw new RuntimeException("Illegal arguments: Expected (list, func) found: " + first + ", " + second + "}");
+                }
+            }
+        });
+
+        moduleScope.putFunc("reduce", (scope, args) -> {
+
+            if (args.size() > 2 || args.size() == 0) {
+                throw new RuntimeException("Wrong number of arguments for function 'List.reduce', found: " + args);
+            }
+
             Object first = args.get(0);
             Object second = args.get(1);
 
-            if (first instanceof List) {
-                List<?> list = (List) first;
+            if (first instanceof List && second instanceof Func) {
+                List<Object> list = (List<Object>) first;
+                Func func = (Func) second;
 
-                Object third = args.get(2);
-
-                if (third instanceof Func) {
-                    Func func = (Func) third;
-
-                    Object result = second;
-
-                    for (Object item : list) {
-                        result = Caller.callEvaluated(scope, func, List.of(result, item));
-                    }
-
-                    return result;
-                } else {
-                    throw new RuntimeException("Illegal arguments: Expected Function found: " + (third == null ? "null" : third.getClass()));
-                }
-
+                return list.reduce((l, r) -> Caller.callEvaluated(scope, func, List.of(l, r)));
             } else {
-                throw new RuntimeException("Illegal arguments: Expected list found: " + (first == null ? "null" : first.getClass()));
+                throw new RuntimeException("Illegal arguments: Expected (list, start, func) found: " + first + ", " + second + "}");
             }
-
-
         });
+
     }
 }

@@ -306,6 +306,15 @@ public class CoreLibrary {
             }
         });
 
+        libraryScope.putFunc("?", (scope, args) -> {
+
+            validateArgs("?", args, 1);
+
+            Object value = args.get(0);
+
+            return value != null;
+        });
+
         libraryScope.putFunc("!", (scope, args) -> {
 
             validateArgs("!", args, 1);
@@ -313,36 +322,6 @@ public class CoreLibrary {
             Object value = args.get(0);
 
             return value == null || value == Boolean.FALSE;
-        });
-
-        libraryScope.putFunc("++", (scope, args) -> {
-
-            validateArgs("++", args, 1);
-
-            Object value = args.get(0);
-
-            if(value instanceof Integer) {
-                return (Integer) value + 1;
-            } else if (value instanceof Double) {
-                return (Double) value + 1.0;
-            } else {
-                throw new RuntimeException("Illegal arguments to '++' op, found: " + args);
-            }
-        });
-
-        libraryScope.putFunc("--", (scope, args) -> {
-
-            validateArgs("--", args, 1);
-
-            Object value = args.get(0);
-
-            if(value instanceof Integer) {
-                return (Integer) value - 1;
-            } else if (value instanceof Double) {
-                return (Double) value - 1.0;
-            } else {
-                throw new RuntimeException("Illegal arguments to '--' op, found: " + args);
-            }
         });
 
         libraryScope.putFunc("print", (scope, args) -> {

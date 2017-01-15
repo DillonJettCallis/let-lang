@@ -28,10 +28,12 @@ portOut
 expression
  : Let LocalIdentifier '=' expression ';'? # AssignmentExpression
  | '{' (LocalIdentifier (',' LocalIdentifier)* )? '=>' expression+ '}' # FunctionExpression
+ | expression '.' LocalIdentifier  # ModuleAccessExpression
+ | expression op=('|' | '|?' | '|/' | '|!' | '|&') expression # BinaryOpExpression
  | method=expression '(' (args+=expression (',' args+=expression)*)? ')' # CallExpression
  | args+=expression '::' method=expression '(' (args+=expression (',' args+=expression)*)? ')' # CallExpression
- | expression '.' LocalIdentifier  # ModuleAccessExpression
  | op='-' expression # UnaryOpExpression
+ | op='?' expression # UnaryOpExpression
  | op='!' expression # UnaryOpExpression
  | expression op=('*' | '/' | '**') expression # BinaryOpExpression
  | expression op=('+' | '-') expression # BinaryOpExpression
