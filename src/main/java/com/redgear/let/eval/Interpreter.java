@@ -4,10 +4,16 @@ import com.redgear.let.antlr.LetLexer;
 import com.redgear.let.antlr.LetParser;
 import com.redgear.let.ast.AstBuilder;
 import com.redgear.let.ast.Module;
-import org.antlr.v4.runtime.ANTLRFileStream;
+import com.redgear.let.eval.lib.CoreLibrary;
+import com.redgear.let.eval.lib.ListLibrary;
+import com.redgear.let.eval.lib.MapLibrary;
+import com.redgear.let.eval.lib.StringLibrary;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -29,6 +35,7 @@ public class Interpreter {
 
         addLibModule(new MapLibrary());
         addLibModule(new ListLibrary());
+        addLibModule(new StringLibrary());
     }
 
     private void addLibModule(ModuleDefinition definition) {
@@ -57,7 +64,7 @@ public class Interpreter {
 
     private ModuleScope loadModuleReal(String filePath) {
         try {
-            ANTLRFileStream fileStream = new ANTLRFileStream(filePath, "UTF-8");
+            CharStream fileStream = CharStreams.fromFileName(filePath, Charset.forName("UTF-8"));
 
             LetLexer lexer = new LetLexer(fileStream);
 

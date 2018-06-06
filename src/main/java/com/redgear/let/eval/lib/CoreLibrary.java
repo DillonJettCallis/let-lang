@@ -1,6 +1,9 @@
-package com.redgear.let.eval;
+package com.redgear.let.eval.lib;
 
 import com.redgear.let.ast.Expression;
+import com.redgear.let.eval.Interpreter;
+import com.redgear.let.eval.LibraryScope;
+import com.redgear.let.eval.ModuleScope;
 import javaslang.collection.List;
 
 import java.util.Objects;

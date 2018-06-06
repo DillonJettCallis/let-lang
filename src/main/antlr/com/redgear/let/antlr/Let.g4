@@ -27,6 +27,8 @@ portOut
 
 expression
  : Let LocalIdentifier '=' expression ';'? # AssignmentExpression
+ | 'if' condition=expression '{' thenExpressions+=expression '}' ('else' '{' elseExpressions+=expression '}')? # IfExpression
+ | 'for' '(' local=LocalIdentifier 'in' collection=expression ')' '{' body=expression+ '}' # ForExpression
  | '{' (LocalIdentifier (',' LocalIdentifier)* )? '=>' expression+ '}' # FunctionExpression
  | expression '.' LocalIdentifier  # ModuleAccessExpression
  | expression op=('|' | '|?' | '|/' | '|!' | '|&') expression # BinaryOpExpression

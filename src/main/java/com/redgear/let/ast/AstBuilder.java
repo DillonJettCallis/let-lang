@@ -175,9 +175,27 @@ public class AstBuilder {
         return new Call(location, buildQualifiedFunc(location, "List", "build"), expressions);
     }
 
+    private Call build(IfExpressionContext context) {
+        Location location = new Location(context.getStart());
+        Expression condition = build(context.condition);
+        List<Expression> thenExs = List.ofAll(context.thenExpressions).map(this::build);
+        List<Expression> elseExs = List.ofAll(context.elseExpressions).map(this::build);
+
+        return new Call(location, new Variable(location, "if"), List.of(condition, new Parenthesized(new Location(context.getStart()), thenExs), new Parenthesized(new Location(context.getStart()), elseExs)));
+    }
+
+    private Call build(ForExpressionContext context) {
+        Location location = new Location(context.getStart());
+        Variable local = makeVariable(context.LocalIdentifier());
+        Expression collection = build(context.collection);
+        List<Expression> body = List.ofAll(context.expression()).map(this::build);
+
+        Lambda func = new Lambda(new Location(context.getStart()), List.of(local), body);
+
+        return new Call(location, buildQualifiedFunc(location, "List", "forEach"), List.of(collection, func));
+    }
+
     private Expression build(StatementContext context) {
-
-
         return Match(context).of(
                 Case(instanceOf(ImportStatementContext.class), this::build),
                 Case(instanceOf(ExportStatementContext.class), this::build),
@@ -201,7 +219,9 @@ public class AstBuilder {
                 Case(instanceOf(FloatLiteralExpressionContext.class), this::build),
                 Case(instanceOf(StringLiteralExpressionContext.class), this::build),
                 Case(instanceOf(MapLiteralExpressionContext.class), this::build),
-                Case(instanceOf(ListLiteralExpressionContext.class), this::build)
+                Case(instanceOf(ListLiteralExpressionContext.class), this::build),
+                Case(instanceOf(IfExpressionContext.class), this::build),
+                Case(instanceOf(ForExpressionContext.class), this::build)
         );
     }
 

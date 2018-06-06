@@ -1,14 +1,15 @@
-package com.redgear.let.eval;
+package com.redgear.let.eval.lib;
 
 
+import com.redgear.let.eval.ModuleDefinition;
+import com.redgear.let.eval.ModuleScope;
 import javaslang.Tuple;
-import javaslang.collection.List;
 import javaslang.collection.Map;
 
 /**
  * Created by LordBlackHole on 2017-01-08.
  */
-public class MapLibrary implements ModuleDefinition{
+public class MapLibrary implements ModuleDefinition {
 
     @Override
     public String getName() {

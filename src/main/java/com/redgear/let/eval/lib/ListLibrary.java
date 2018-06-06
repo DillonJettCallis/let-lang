@@ -1,5 +1,9 @@
-package com.redgear.let.eval;
+package com.redgear.let.eval.lib;
 
+import com.redgear.let.eval.Caller;
+import com.redgear.let.eval.Func;
+import com.redgear.let.eval.ModuleDefinition;
+import com.redgear.let.eval.ModuleScope;
 import javaslang.collection.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +57,7 @@ public class ListLibrary implements ModuleDefinition {
 
                 list.forEach(obj -> Caller.callEvaluated(scope, func, List.of(obj)));
 
-                return null;
+                return list;
             } else {
                 throw new RuntimeException("Illegal arguments: Expected (list, func) found: (" + first + ", " + second + ")");
             }
