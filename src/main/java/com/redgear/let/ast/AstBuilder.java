@@ -24,10 +24,9 @@ public class AstBuilder {
             "|?", "filter",
             "|!", "forEach",
             "|&", "fold");
-    private final Interpreter interpreter;
 
-    public AstBuilder(Interpreter interpreter) {
-        this.interpreter = interpreter;
+    public AstBuilder() {
+
     }
 
     public Module build(ModuleContext module) {
@@ -49,7 +48,7 @@ public class AstBuilder {
 
         String value = body.substring(1, body.length() - 1);
 
-        return new Import(new Location(context.getStart()), interpreter, id, value);
+        return new Import(new Location(context.getStart()), id, value);
     }
 
     private Expression build(ExportStatementContext portOut) {

@@ -1,10 +1,5 @@
 package com.redgear.let.ast;
 
-import com.redgear.let.eval.LocalScope;
-
-/**
- * Created by LordBlackHole on 2016-12-30.
- */
 public class Literal implements Expression {
 
     private final Location location;
@@ -24,11 +19,6 @@ public class Literal implements Expression {
         return "{\"className\": \"" + Literal.class + "\"" +
                 ",\"value\": \"" + value + "\"" +
                 '}';
-    }
-
-    @Override
-    public Object eval(LocalScope scope) {
-        return value;
     }
 
     @Override

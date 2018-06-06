@@ -8,9 +8,6 @@ import javaslang.collection.List;
 
 import java.util.Objects;
 
-/**
- * Created by LordBlackHole on 2017-01-02.
- */
 public class CoreLibrary {
 
 
@@ -33,12 +30,12 @@ public class CoreLibrary {
             Expression left = args.get(0);
             Expression right = args.get(1);
 
-            Object first = left.eval(scope);
+            Object first = interpreter.eval(scope, left);
 
             if(first == null || first == Boolean.FALSE) {
                 return false;
             } else {
-                Object second = right.eval(scope);
+                Object second = interpreter.eval(scope, right);
 
                 if(second == null || second == Boolean.FALSE){
                     return false;
@@ -57,10 +54,10 @@ public class CoreLibrary {
             Expression left = args.get(0);
             Expression right = args.get(1);
 
-            Object first = left.eval(scope);
+            Object first = interpreter.eval(scope, left);
 
             if(first == null || first == Boolean.FALSE) {
-                Object second = right.eval(scope);
+                Object second = interpreter.eval(scope, right);
 
                 if(second == null || second == Boolean.FALSE){
                     return false;
@@ -80,12 +77,12 @@ public class CoreLibrary {
                 throw new RuntimeException("Wrong number of arguments for if statement! Must have 2 or 3, found: " + argSize);
             }
 
-            Object test = args.get(0).eval(scope);
+            Object test = interpreter.eval(scope, args.get(0));
 
             if (test != null && test != Boolean.FALSE) {
-                return args.get(1).eval(scope);
+                return interpreter.eval(scope, args.get(1));
             } else if(argSize == 3) {
-                return args.get(2).eval(scope);
+                return interpreter.eval(scope,  args.get(2));
             } else {
                 return null;
             }

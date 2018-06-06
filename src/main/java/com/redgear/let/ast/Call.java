@@ -1,13 +1,9 @@
 package com.redgear.let.ast;
 
-import com.redgear.let.eval.*;
 import javaslang.collection.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Created by LordBlackHole on 2016-12-30.
- */
 public class Call implements Expression {
 
     private static final Logger log = LoggerFactory.getLogger(Call.class);
@@ -43,22 +39,6 @@ public class Call implements Expression {
                 ",\"method\": \"" + method + '\'' + "\"" +
                 ",\"arguments\": \"" + arguments + "\"" +
                 '}';
-    }
-
-    @Override
-    public Object eval(LocalScope scope) {
-
-        Object obj = method.eval(scope);
-
-        if (obj == null) {
-            throw new RuntimeException("Undefined method " + method.getLocation().print());
-        }
-
-        if(obj instanceof Func) {
-            return Caller.call(scope, (Func) obj, arguments);
-        } else {
-            throw new RuntimeException("Unknown function type: " + obj.getClass());
-        }
     }
 
     @Override

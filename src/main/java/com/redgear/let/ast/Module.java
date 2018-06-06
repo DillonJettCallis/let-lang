@@ -1,12 +1,7 @@
 package com.redgear.let.ast;
 
-import com.redgear.let.eval.LocalScope;
-import com.redgear.let.eval.ModuleScope;
 import javaslang.collection.List;
 
-/**
- * Created by LordBlackHole on 2016-12-30.
- */
 public class Module implements Expression {
 
     private final Location location;
@@ -29,16 +24,6 @@ public class Module implements Expression {
                 ",\"location\": \"" + location + "\"" +
                 ",\"expressions\": \"" + expressions + "\"" +
                 '}';
-    }
-
-    @Override
-    public Object eval(LocalScope scope) {
-        ModuleScope moduleScope = new ModuleScope(scope.getLibraryScope());
-        LocalScope newLocal = new LocalScope(moduleScope);
-
-        expressions.forEach(ex -> ex.eval(newLocal));
-
-        return moduleScope;
     }
 
     @Override

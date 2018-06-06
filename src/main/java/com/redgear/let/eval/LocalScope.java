@@ -1,8 +1,6 @@
 package com.redgear.let.eval;
 
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
 
 /**
