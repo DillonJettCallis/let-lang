@@ -3,9 +3,6 @@ package com.redgear.let.eval;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Created by LordBlackHole on 2017-01-01.
- */
 public class LocalScope implements Scope {
 
     private final Scope local;
@@ -27,7 +24,11 @@ public class LocalScope implements Scope {
 
     @Override
     public void putValue(String id, Object value) {
-        values.put(id, value);
+        if(values.containsKey(id)) {
+            throw new RuntimeException("Attempt to reassign variable: " + id);
+        } else {
+            values.put(id, value);
+        }
     }
 
     @Override
