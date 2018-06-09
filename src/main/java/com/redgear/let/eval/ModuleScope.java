@@ -3,9 +3,6 @@ package com.redgear.let.eval;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Created by LordBlackHole on 2017-01-01.
- */
 public class ModuleScope implements Scope {
 
     private final LibraryScope scope;
@@ -26,7 +23,11 @@ public class ModuleScope implements Scope {
 
     @Override
     public void putValue(String id, Object value) {
-        values.put(id, value);
+        if(values.containsKey(id)) {
+            throw new RuntimeException("Attempt to reexport variable: " + id);
+        } else {
+            values.put(id, value);
+        }
     }
 
     @Override
@@ -36,7 +37,7 @@ public class ModuleScope implements Scope {
 
     @Override
     public void exportValue(String id, Object value) {
-        values.put(id, value);
+        putValue(id, value);
     }
 
 }

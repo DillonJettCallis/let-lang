@@ -39,10 +39,6 @@ public class AstBuilder {
         return new Module(new Location(module.getStart()),expressions);
     }
 
-    private Expression build(ExpressionStatementContext expression) {
-        return build(expression.expression());
-    }
-
     private Expression build(ImportStatementContext context) {
         var portIn = context.portIn();
 
@@ -52,24 +48,6 @@ public class AstBuilder {
         var alias = portIn.alias == null ? tokens.last() : portIn.alias.getText();
 
         return new Import(new Location(context.getStart()), path, alias);
-    }
-
-    private Expression build(ExportStatementContext portOut) {
-        PortOutContext context = portOut.portOut();
-
-        ExpressionContext expression = context.expression();
-
-        if(expression == null) {
-            Variable var = makeVariable(context.LocalIdentifier());
-
-            return new Export(new Location(portOut.getStart()), var.getName(), var);
-        } else {
-            String id = context.LocalIdentifier().getText();
-
-            Expression ex = build(expression);
-
-            return new Export(new Location(portOut.getStart()), id, ex);
-        }
     }
 
     private Expression build(AssignmentExpressionContext context) {
@@ -94,7 +72,9 @@ public class AstBuilder {
         return new Lambda(new Location(context.getStart()), args, expressions);
     }
 
-    private Assignment build(FunctionAssignmentExpressionContext context) {
+    private Expression build(FunctionStatementContext context) {
+        var exported = context.exported != null;
+
         var ids = List.ofAll(context.LocalIdentifier());
 
         var id = makeVariable(ids.head());
@@ -103,7 +83,13 @@ public class AstBuilder {
 
         var expressions = List.ofAll(context.expression()).map(this::build);
 
-        return new Assignment(new Location(context.getStart()), id, new Lambda(new Location(context.getStart()), args, expressions));
+        var assignment = new Assignment(new Location(context.getStart()), id, new Lambda(new Location(context.getStart()), args, expressions));
+
+        if (exported) {
+            return new Export(new Location(context.getStart()), id.getName(), assignment);
+        } else {
+            return assignment;
+        }
     }
 
     private Call build(CallExpressionContext context) {
@@ -212,8 +198,7 @@ public class AstBuilder {
     private Expression build(StatementContext context) {
         return Match(context).of(
                 Case(instanceOf(ImportStatementContext.class), this::build),
-                Case(instanceOf(ExportStatementContext.class), this::build),
-                Case(instanceOf(ExpressionStatementContext.class), this::build)
+                Case(instanceOf(FunctionStatementContext.class), this::build)
         );
     }
 
@@ -235,8 +220,7 @@ public class AstBuilder {
                 Case(instanceOf(MapLiteralExpressionContext.class), this::build),
                 Case(instanceOf(ListLiteralExpressionContext.class), this::build),
                 Case(instanceOf(IfExpressionContext.class), this::build),
-                Case(instanceOf(ForExpressionContext.class), this::build),
-                Case(instanceOf(FunctionAssignmentExpressionContext.class), this::build)
+                Case(instanceOf(ForExpressionContext.class), this::build)
         );
     }
 

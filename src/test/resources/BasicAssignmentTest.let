@@ -1,119 +1,127 @@
 
 # This is a comment
 
-
-let x = 5 + 7 * 2
-
-let y=7+x
-
-let result = ('The result is: ' + y)
-
-let check = x == 12
-
-let condition = if (15 + 4) == y {
-  'pass'
-} else {
-  'fail'
-}
-
-let sum = { l, r => l + r}
-
-let num = sum(6, 4)
-
-let recurse = { num, times, ans =>
-	if times == 0 {
-	    ans
-	} else {
-	    recurse(num, times - 1, num + ans)
-	}
-}
-
-
-let mul = recurse(3, 4, 0)
-
-let complexTest = if (mul == 10) || (num == 10) {
-    'pass'
-} else {
-    'fail'
-}
-
-
-let pow = 2 ** 4
-
-let double = {num => num * 2 }
-
-let op = { num, action => action(num) * action(num) }
-
-let higher = op(2, double)
-
-print('This is a test: ', higher)
-
-let cons = 1
-
-let neg = -1
-
-let sub = 2 + neg
-
-let negMul = 3 * -2
-
-
-let invert = if !(1 == 1) {
- 'fail'
-} else {
- 'pass'
-}
-
-
-let another = sum(-1, -2 - -5)
-
-
 import SomeLib
 import OtherLib
-
-let multiplyResult = SomeLib.multiply(3, 4)
-
-let sumResult = sum(5, 3)
-
-
-let divideResult = if true {
- OtherLib
-} else {
- SomeLib
-}.divide(12, 3)
-
-
-let firstMap = ["key" -> "value", 23 -> 42]
-
 import Core.Map
-
-let getValue = Map.get(firstMap, "key")
-
-
-let nums = [1, 2, 3, 4, 5]
-
 import Core.List
-
-let third = nums::List.get(2)
-
-[1, 2, 3, 4, 5] | { n => n ** 2} |! print
-
-print(if 2 > 4 { "a" } else { "b" })
-
-
-let l = List.build(3, 4, 5)
-
-
-
-let total = l |& SomeLib.multiply
-
-let product = nums | {i => i + 1}  |& SomeLib.multiply
-
-let flat = [1, 2, 3] |/ {i => [i, i]} |& sum :: print()
-
-let r = flat + 1
-
 import Core.String
 
-let listOfWords = for (next in 'This is a test'::String.split(' ')) {
-    print(next, ' ', next::String.size())
+fun sum( l, r) { l + r}
+
+export fun main() {
+    let x = 5 + 7 * 2
+
+    let y=7+x
+
+    let result = ('The result is: ' + y)
+
+    let check = x == 12
+
+    let condition = if (15 + 4) == y {
+      'pass'
+    } else {
+      'fail'
+    }
+
+
+
+    let num = sum(6, 4)
+
+    let recurse = { num, times, ans =>
+        if times == 0 {
+            ans
+        } else {
+            recurse(num, times - 1, num + ans)
+        }
+    }
+
+
+    let mul = recurse(3, 4, 0)
+
+    let complexTest = if (mul == 10) || (num == 10) {
+        'pass'
+    } else {
+        'fail'
+    }
+
+
+    let pow = 2 ** 4
+
+    let double = {num => num * 2 }
+
+    let op = { num, action => action(num) * action(num) }
+
+    let higher = op(2, double)
+
+    print('This is a test: ', higher)
+
+    let cons = 1
+
+    let neg = -1
+
+    let sub = 2 + neg
+
+    let negMul = 3 * -2
+
+
+    let invert = if !(1 == 1) {
+     'fail'
+    } else {
+     'pass'
+    }
+
+
+    let another = sum(-1, -2 - -5)
+
+
+
+
+    let multiplyResult = SomeLib.multiply(3, 4)
+
+    let sumResult = sum(5, 3)
+
+
+    let divideResult = if true {
+     OtherLib
+    } else {
+     SomeLib
+    }.divide(12, 3)
+
+
+    let firstMap = ["key" -> "value", 23 -> 42]
+
+
+
+    let getValue = Map.get(firstMap, "key")
+
+
+    let nums = [1, 2, 3, 4, 5]
+
+
+
+    let third = nums::List.get(2)
+
+    [1, 2, 3, 4, 5] | { n => n ** 2} |! print
+
+    print(if 2 > 4 { "a" } else { "b" })
+
+
+    let l = List.build(3, 4, 5)
+
+
+
+    let total = l |& SomeLib.multiply
+
+    let product = nums | {i => i + 1}  |& SomeLib.multiply
+
+    let flat = [1, 2, 3] |/ {i => [i, i]} |& sum :: print()
+
+    let r = flat + 1
+
+
+
+    let listOfWords = for (next in 'This is a test'::String.split(' ')) {
+        print(next, ' ', next::String.size())
+    }
 }

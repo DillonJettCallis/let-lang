@@ -1,15 +1,14 @@
 
 
 
-export multiply = { l, r => l * r }
-
-
-fun divide(l, r) {
- l / r
+export fun multiply(l, r) {
+  l * r
 }
 
-export divide
 
+export fun divide(l, r) {
+ l / r
+}
 
 
 

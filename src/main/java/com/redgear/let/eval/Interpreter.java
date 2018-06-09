@@ -66,7 +66,15 @@ public class Interpreter {
     }
 
     public void run(String mainModule) {
-        loadModule(mainModule);
+        var scope = loadModule(mainModule);
+
+        var main = scope.getValue("main");
+
+        if (main instanceof Func) {
+            caller.call(new LocalScope(scope), (Func) main, List.of());
+        } else {
+            throw new RuntimeException("No main() function in module: " + mainModule);
+        }
     }
 
     public ModuleScope loadModule(String fileName) {

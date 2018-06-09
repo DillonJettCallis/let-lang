@@ -12,22 +12,15 @@ module
 
 statement
  : portIn # ImportStatement
- | portOut # ExportStatement
- | expression # ExpressionStatement
+ | exported=Export? 'fun' id=LocalIdentifier '(' (args+=LocalIdentifier (',' args+=LocalIdentifier)* )? ')' '{' body=expression+ '}' # FunctionStatement
  ;
 
 portIn
  : Import path+=ModuleIdentifier ( '.' path+=ModuleIdentifier)* ('as' alias=ModuleIdentifier)?
  ;
 
-portOut
- : Export LocalIdentifier
- | Export LocalIdentifier '=' expression
- ;
-
 expression
  : Let LocalIdentifier '=' expression ';'? # AssignmentExpression
- | 'fun' id=LocalIdentifier '(' (args+=LocalIdentifier (',' args+=LocalIdentifier)* )? ')' '{' body=expression+ '}' # FunctionAssignmentExpression
  | 'if' condition=expression '{' thenExpressions+=expression '}' ('else' '{' elseExpressions+=expression '}')? # IfExpression
  | 'for' '(' local=LocalIdentifier 'in' collection=expression ')' '{' body=expression+ '}' # ForExpression
  | '{' (LocalIdentifier (',' LocalIdentifier)* )? '=>' expression+ '}' # FunctionExpression
