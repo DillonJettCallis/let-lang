@@ -4,7 +4,9 @@
 export multiply = { l, r => l * r }
 
 
-let divide = { l, r => l / r}
+fun divide(l, r) {
+ l / r
+}
 
 export divide
 

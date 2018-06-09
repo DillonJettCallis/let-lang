@@ -27,6 +27,7 @@ portOut
 
 expression
  : Let LocalIdentifier '=' expression ';'? # AssignmentExpression
+ | 'fun' id=LocalIdentifier '(' (args+=LocalIdentifier (',' args+=LocalIdentifier)* )? ')' '{' body=expression+ '}' # FunctionAssignmentExpression
  | 'if' condition=expression '{' thenExpressions+=expression '}' ('else' '{' elseExpressions+=expression '}')? # IfExpression
  | 'for' '(' local=LocalIdentifier 'in' collection=expression ')' '{' body=expression+ '}' # ForExpression
  | '{' (LocalIdentifier (',' LocalIdentifier)* )? '=>' expression+ '}' # FunctionExpression

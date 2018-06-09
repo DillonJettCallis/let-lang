@@ -94,6 +94,18 @@ public class AstBuilder {
         return new Lambda(new Location(context.getStart()), args, expressions);
     }
 
+    private Assignment build(FunctionAssignmentExpressionContext context) {
+        var ids = List.ofAll(context.LocalIdentifier());
+
+        var id = makeVariable(ids.head());
+
+        var args = ids.tail().map(this::makeVariable);
+
+        var expressions = List.ofAll(context.expression()).map(this::build);
+
+        return new Assignment(new Location(context.getStart()), id, new Lambda(new Location(context.getStart()), args, expressions));
+    }
+
     private Call build(CallExpressionContext context) {
         List<Expression> args = List.ofAll(context.args).map(this::build);
 
@@ -223,7 +235,8 @@ public class AstBuilder {
                 Case(instanceOf(MapLiteralExpressionContext.class), this::build),
                 Case(instanceOf(ListLiteralExpressionContext.class), this::build),
                 Case(instanceOf(IfExpressionContext.class), this::build),
-                Case(instanceOf(ForExpressionContext.class), this::build)
+                Case(instanceOf(ForExpressionContext.class), this::build),
+                Case(instanceOf(FunctionAssignmentExpressionContext.class), this::build)
         );
     }
 
