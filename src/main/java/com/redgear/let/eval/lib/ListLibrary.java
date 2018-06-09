@@ -5,9 +5,6 @@ import javaslang.collection.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Created by LordBlackHole on 2017-01-08.
- */
 public class ListLibrary implements ModuleDefinition {
 
     private static final Logger log = LoggerFactory.getLogger(ListLibrary.class);
@@ -20,7 +17,7 @@ public class ListLibrary implements ModuleDefinition {
 
     @Override
     public String getName() {
-        return "List";
+        return "Core.List";
     }
 
     @Override
@@ -60,7 +57,7 @@ public class ListLibrary implements ModuleDefinition {
 
                 list.forEach(obj -> caller.callEvaluated(scope, func, List.of(obj)));
 
-                return list;
+                return null;
             } else {
                 throw new RuntimeException("Illegal arguments: Expected (list, func) found: (" + first + ", " + second + ")");
             }

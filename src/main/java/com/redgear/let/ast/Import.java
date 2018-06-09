@@ -3,13 +3,14 @@ package com.redgear.let.ast;
 public class Import implements Expression {
 
     private final Location location;
-    private final String moduleName;
-    private final String id;
+    private final String path;
+    private final String alias;
 
-    public Import(Location location, String moduleName, String id) {
+
+    public Import(Location location, String path, String alias) {
         this.location = location;
-        this.moduleName = moduleName;
-        this.id = id;
+        this.path = path;
+        this.alias = alias;
     }
 
     @Override
@@ -17,11 +18,11 @@ public class Import implements Expression {
         return location;
     }
 
-    public String getModuleName() {
-        return moduleName;
+    public String getPath() {
+        return path;
     }
 
-    public String getId() {
-        return id;
+    public String getAlias() {
+        return alias;
     }
 }

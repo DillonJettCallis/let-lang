@@ -8,7 +8,7 @@ public class StringLibrary implements ModuleDefinition {
 
     @Override
     public String getName() {
-        return "String";
+        return "Core.String";
     }
 
     @Override
@@ -25,6 +25,20 @@ public class StringLibrary implements ModuleDefinition {
                 return List.of(((String) first).split((String) second));
             } else {
                 throw new RuntimeException("Illegal argument for function String.split: Expected (String, String), found: (" + (first == null ? "null" : first.getClass()) + ", " + (second == null ? "null" : second.getClass()) + ")");
+            }
+        });
+
+        moduleScope.putFunc("size", (scope, args) -> {
+            if (args.size() != 1) {
+                throw new RuntimeException("Wrong number of arguments for function 'String.size', expected 1, found: " + args);
+            }
+
+            Object first = args.get(0);
+
+            if (first instanceof String) {
+                return ((String) first).length();
+            } else {
+                throw new RuntimeException("Illegal argument for function String.size: Expected (String), found: (" + (first == null ? "null" : first.getClass()) + ")");
             }
         });
     }

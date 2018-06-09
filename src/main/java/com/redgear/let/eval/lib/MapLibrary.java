@@ -6,14 +6,11 @@ import com.redgear.let.eval.ModuleScope;
 import javaslang.Tuple;
 import javaslang.collection.Map;
 
-/**
- * Created by LordBlackHole on 2017-01-08.
- */
 public class MapLibrary implements ModuleDefinition {
 
     @Override
     public String getName() {
-        return "Map";
+        return "Core.Map";
     }
 
     public void buildLibrary(ModuleScope moduleScope) {

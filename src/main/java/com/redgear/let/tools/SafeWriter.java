@@ -1,6 +1,8 @@
-package com.redgear.let.compile2js;
+package com.redgear.let.tools;
 
+import com.redgear.let.ast.AstVisitor;
 import com.redgear.let.ast.Expression;
+import javaslang.collection.List;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -8,11 +10,11 @@ import java.io.Writer;
 public class SafeWriter {
 
     private final Writer writer;
-    private final Compiler compiler;
+    private final AstVisitor astVisitor;
 
-    public SafeWriter(Writer writer, Compiler compiler) {
+    public SafeWriter(Writer writer, AstVisitor astVisitor) {
         this.writer = writer;
-        this.compiler = compiler;
+        this.astVisitor = astVisitor;
     }
 
     public SafeWriter append(String next) {
@@ -33,7 +35,19 @@ public class SafeWriter {
     }
 
     public SafeWriter append(Expression ex) {
-        compiler.compile(this, ex);
+        astVisitor.visit(ex);
+        return this;
+    }
+
+    public SafeWriter appendAll(List<? extends Expression> list, String deliminator) {
+        var args = list.toArray();
+
+        for (int i = 0; i < args.length(); i++) {
+            append(args.get(i));
+            if (i != args.length() - 1) {
+                append(deliminator);
+            }
+        }
         return this;
     }
 }

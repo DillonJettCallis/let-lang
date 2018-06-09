@@ -3,9 +3,13 @@ package com.redgear.let.ast;
 import com.redgear.let.antlr.LetParser.*;
 import com.redgear.let.eval.Interpreter;
 import javaslang.collection.*;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.function.Function;
 
 import static javaslang.API.Case;
 import static javaslang.API.Match;
@@ -40,15 +44,14 @@ public class AstBuilder {
     }
 
     private Expression build(ImportStatementContext context) {
-        PortInContext portIn = context.portIn();
+        var portIn = context.portIn();
 
-        String id = portIn.ModuleIdentifier().getText();
+        var tokens = List.ofAll(portIn.path).map(Token::getText);
+        var path = tokens.mkString(".");
 
-        String body = portIn.StringLiteral().getText();
+        var alias = portIn.alias == null ? tokens.last() : portIn.alias.getText();
 
-        String value = body.substring(1, body.length() - 1);
-
-        return new Import(new Location(context.getStart()), id, value);
+        return new Import(new Location(context.getStart()), path, alias);
     }
 
     private Expression build(ExportStatementContext portOut) {
@@ -164,14 +167,14 @@ public class AstBuilder {
         Location location = new Location(context.getStart());
         List<Expression> expressions = List.ofAll(context.expression()).map(this::build);
 
-        return new Call(location, buildQualifiedFunc(location, "Map", "build"), expressions);
+        return new Call(location, new Variable(location, "$buildMap"), expressions);
     }
 
     private Call build(ListLiteralExpressionContext context) {
         Location location = new Location(context.getStart());
         List<Expression> expressions = List.ofAll(context.expression()).map(this::build);
 
-        return new Call(location, buildQualifiedFunc(location, "List", "build"), expressions);
+        return new Call(location, new Variable(location, "$buildList"), expressions);
     }
 
     private Call build(IfExpressionContext context) {
@@ -191,7 +194,7 @@ public class AstBuilder {
 
         Lambda func = new Lambda(new Location(context.getStart()), List.of(local), body);
 
-        return new Call(location, buildQualifiedFunc(location, "List", "forEach"), List.of(collection, func));
+        return new Call(location, buildQualifiedFunc(location, "List", "map"), List.of(collection, func));
     }
 
     private Expression build(StatementContext context) {

@@ -36,12 +36,13 @@ public class Interpreter {
     private static final Logger log = LoggerFactory.getLogger(Interpreter.class);
 
     private final LibraryScope libraryScope;
-    private final Path mainModule;
+    private final Path srcPath;
     private final Map<String, ModuleScope> modules = new HashMap<>();
+    private final Map<String, ModuleScope> libraryModules = new HashMap<>();
     private final Caller caller;
 
     public Interpreter(String modulePath) {
-        this.mainModule = Paths.get(modulePath).toAbsolutePath();
+        this.srcPath = Paths.get(modulePath).toAbsolutePath();
         this.libraryScope = new LibraryScope();
         this.caller = new Caller(this);
         new CoreLibrary(this).buildLibrary(libraryScope);
@@ -57,22 +58,29 @@ public class Interpreter {
 
         definition.buildLibrary(moduleScope);
 
-        modules.put(name, moduleScope);
-        libraryScope.putValue(name, moduleScope);
+        libraryModules.put(name, moduleScope);
     }
 
     private String resolveModule(String relativeModule) {
-        return mainModule.resolveSibling(relativeModule).toAbsolutePath().toString();
+        return srcPath.resolve(relativeModule.replace(".", "/") + ".let").toAbsolutePath().toString();
     }
 
-    public void run() {
-        loadModuleReal(mainModule.toString());
+    public void run(String mainModule) {
+        loadModule(mainModule);
     }
 
     public ModuleScope loadModule(String fileName) {
-        String resolved = resolveModule(fileName);
+        if (libraryModules.containsKey(fileName)) {
+            return libraryModules.get(fileName);
+        }
 
-        return modules.computeIfAbsent(resolved, this::loadModuleReal);
+        if (modules.containsKey(fileName)) {
+            return modules.get(fileName);
+        } else {
+            ModuleScope module = loadModuleReal(resolveModule(fileName));
+            modules.put(fileName, module);
+            return module;
+        }
     }
 
     private ModuleScope loadModuleReal(String filePath) {
@@ -127,9 +135,9 @@ public class Interpreter {
     }
 
     private Object eval(LocalScope scope, Import expression) {
-        ModuleScope importScope = loadModule(expression.getId());
+        ModuleScope importScope = loadModule(expression.getPath());
 
-        scope.putValue(expression.getModuleName(), importScope);
+        scope.putValue(expression.getAlias(), importScope);
 
         return importScope;
     }
@@ -140,13 +148,9 @@ public class Interpreter {
             LocalScope inner = new LocalScope(scope);
             List<Variable> variables = expression.getVariables();
 
-            for (int i = 0; i < variables.size() && i < args.size(); i++) {
-                inner.putValue(variables.get(i).getName(), args.get(i));
-            }
+            variables.zip(args).forEach(pair -> inner.putValue(pair._1.getName(), pair._2));
 
-            List<Object> collect = expression.getStatements().map(ex -> eval(inner, ex));
-
-            return collect.get(collect.size() - 1);
+            return expression.getStatements().foldLeft(null, (prev, ex) -> eval(inner, ex));
         };
     }
 

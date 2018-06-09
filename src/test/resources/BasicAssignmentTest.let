@@ -46,7 +46,7 @@ let op = { num, fun => fun(num) * fun(num) }
 
 let higher = op(2, double)
 
-let _ = print('This is a test: ', higher)
+print('This is a test: ', higher)
 
 let cons = 1
 
@@ -67,8 +67,8 @@ let invert = if !(1 == 1) {
 let another = sum(-1, -2 - -5)
 
 
-import SomeLib from './someLib.let'
-import OtherLib from './otherLib.let'
+import SomeLib
+import OtherLib
 
 let multiplyResult = SomeLib.multiply(3, 4)
 
@@ -84,17 +84,20 @@ let divideResult = if true {
 
 let firstMap = ["key" -> "value", 23 -> 42]
 
+import Core.Map
+
 let getValue = Map.get(firstMap, "key")
 
 
 let nums = [1, 2, 3, 4, 5]
 
+import Core.List
+
 let third = nums::List.get(2)
 
+[1, 2, 3, 4, 5] | { n => n ** 2} |! print
 
-let _ = [1, 2, 3, 4, 5] | { n => n ** 2} |! print
-
-let _ = print(if 2 > 4 { "a" } else { "b" })
+print(if 2 > 4 { "a" } else { "b" })
 
 
 let l = List.build(3, 4, 5)
@@ -109,6 +112,8 @@ let flat = [1, 2, 3] |/ {i => [i, i]} |& sum :: print()
 
 let r = flat + 1
 
+import Core.String
+
 let listOfWords = for (next in 'This is a test'::String.split(' ')) {
-    print(next)
+    print(next, ' ', next::String.size())
 }

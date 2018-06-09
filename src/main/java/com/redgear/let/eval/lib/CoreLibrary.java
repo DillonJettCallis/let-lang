@@ -1,9 +1,11 @@
 package com.redgear.let.eval.lib;
 
+import com.redgear.let.ast.Call;
 import com.redgear.let.ast.Expression;
-import com.redgear.let.eval.Interpreter;
-import com.redgear.let.eval.LibraryScope;
-import com.redgear.let.eval.ModuleScope;
+import com.redgear.let.ast.Lambda;
+import com.redgear.let.ast.Variable;
+import com.redgear.let.eval.*;
+import javaslang.Tuple;
 import javaslang.collection.List;
 
 import java.util.Objects;
@@ -88,18 +90,30 @@ public class CoreLibrary {
             }
         });
 
-        libraryScope.putFunc(".", (scope, args) -> {
+        libraryScope.putMacroFunc(".", (scope, args) -> {
 
             validateArgs(".", args, 2);
 
-            Object left = args.get(0);
-            Object right = args.get(1);
+            Object left = interpreter.eval(scope, args.get(0));
+            Object right = interpreter.eval(scope, args.get(1));
 
             if(left instanceof ModuleScope && right instanceof String) {
                 return ((ModuleScope) left).getValue((String) right);
+            } else if (left == null) {
+                Expression module = args.get(0);
+
+                if (module instanceof Variable) {
+                    String name = ((Variable) module).getName();
+
+                    throw new RuntimeException("Missing import for module: " + name + " " + module.getLocation().print());
+                } else {
+                    throw new RuntimeException("Missing module " + module.getLocation().print());
+                }
+
             } else {
                 throw new RuntimeException("Invalid module access: " + left.getClass());
             }
+
 
         });
 
@@ -324,6 +338,9 @@ public class CoreLibrary {
             return value == null || value == Boolean.FALSE;
         });
 
+        libraryScope.putFunc("$buildList", (scope, args) -> List.ofAll(args));
+        libraryScope.putFunc("$buildMap", (scope, args) -> args.sliding(2, 2).toMap(pair -> Tuple.of(pair.get(0), pair.get(1))));
+
         libraryScope.putFunc("print", (scope, args) -> {
 
             String output = args.mkString();
@@ -334,7 +351,7 @@ public class CoreLibrary {
         });
     }
 
-    private void validateArgs(String op, List<Object> args, int values) {
+    private void validateArgs(String op, List<?> args, int values) {
         int size = args.size();
 
         if (!(size == values)) {

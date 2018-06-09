@@ -17,7 +17,7 @@ statement
  ;
 
 portIn
- : Import ModuleIdentifier From StringLiteral
+ : Import path+=ModuleIdentifier ( '.' path+=ModuleIdentifier)* ('as' alias=ModuleIdentifier)?
  ;
 
 portOut
