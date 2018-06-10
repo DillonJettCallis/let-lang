@@ -1,6 +1,7 @@
-package com.redgear.let.eval.lib;
+package com.redgear.let.lib;
 
 import com.redgear.let.eval.*;
+import com.redgear.let.types.*;
 import javaslang.collection.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,19 +10,15 @@ public class ListLibrary implements ModuleDefinition {
 
     private static final Logger log = LoggerFactory.getLogger(ListLibrary.class);
 
-    private final Caller caller;
-
-    public ListLibrary(Interpreter interpreter) {
-        this.caller = new Caller(interpreter);
-    }
-
     @Override
     public String getName() {
         return "Core.List";
     }
 
     @Override
-    public void buildLibrary(ModuleScope moduleScope) {
+    public void buildLibrary(Interpreter interpreter, Scope moduleScope) {
+        var caller = new Caller(interpreter);
+
         moduleScope.putFunc("build", (scope, args) -> List.ofAll(args));
 
         moduleScope.putFunc("get", (scope, args) -> {
@@ -157,5 +154,152 @@ public class ListLibrary implements ModuleDefinition {
             }
         });
 
+    }
+
+    @Override
+    public void buildTypes(TypeScope typeScope) {
+        typeScope.declareType("build", new DynamicFunctionTypeToken("build", ListLibrary::buildList));
+
+        typeScope.declareType("get", new DynamicFunctionTypeToken("get", args -> {
+            if (args.size() == 2) {
+                var result = extractType(args);
+                var second = args.get(1);
+
+                if (result != null && second == LiteralTypeToken.intTypeToken) {
+                    return result;
+                }
+            }
+
+            return null;
+        }));
+
+        typeScope.declareType("forEach", new DynamicFunctionTypeToken("forEach", args -> {
+            if (args.size() == 2) {
+                var result = extractType(args);
+                var second = args.get(1);
+
+                if (result != null && second instanceof FunctionTypeToken) {
+                    var func = (FunctionTypeToken) second;
+
+                    if (func.getArgTypes().size() == 1 && func.getArgTypes().head().equals(result)) {
+                        return LiteralTypeToken.nullTypeToken;
+                    }
+                }
+            }
+
+            return null;
+        }));
+
+        typeScope.declareType("map", new DynamicFunctionTypeToken("map", args -> {
+            if (args.size() == 2) {
+                var result = extractType(args);
+                var second = args.get(1);
+
+                if (result != null && second instanceof FunctionTypeToken) {
+                    var func = (FunctionTypeToken) second;
+
+                    if (func.getArgTypes().size() == 1 && func.getArgTypes().head().equals(result)) {
+                        return LiteralTypeToken.listTypeToken.construct(List.of(func.getResultType()));
+                    }
+                }
+            }
+
+            return null;
+        }));
+
+        typeScope.declareType("flatMap", new DynamicFunctionTypeToken("flatMap", args -> {
+            if (args.size() == 2) {
+                var result = extractType(args);
+                var second = args.get(1);
+
+                if (result != null && second instanceof FunctionTypeToken) {
+                    var func = (FunctionTypeToken) second;
+
+                    if (func.getArgTypes().size() == 1 && func.getArgTypes().head().equals(result)) {
+                        var resultList = func.getResultType();
+
+                        if (resultList instanceof GenericTypeToken) {
+                            var resultGeneric = (GenericTypeToken) resultList;
+
+                            if (resultGeneric.getTypeConstructor() == LiteralTypeToken.listTypeToken.getBase()) {
+                                return resultGeneric;
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }));
+
+        typeScope.declareType("fold", new DynamicFunctionTypeToken("fold", args -> {
+            if (args.size() == 3) {
+                var contentType = extractType(args);
+                var second = args.get(1);
+                var third = args.get(2);
+
+                if (contentType != null && third instanceof FunctionTypeToken) {
+                    var func = (FunctionTypeToken) second;
+
+                    if (func.getArgTypes().size() == 2 && func.getArgTypes().head().equals(second) && func.getArgTypes().last().equals(contentType)) {
+                        return second;
+                    }
+                }
+            }
+            return null;
+        }));
+
+        typeScope.declareType("reduce", new DynamicFunctionTypeToken("reduce", args -> {
+            if (args.size() == 2) {
+                var contentType = extractType(args);
+                var second = args.get(1);
+
+                if (contentType != null && second instanceof FunctionTypeToken) {
+                    var func = (FunctionTypeToken) second;
+
+                    if (func.getArgTypes().size() == 2 && func.getArgTypes().head().equals(contentType) && func.getArgTypes().last().equals(contentType)) {
+                        return contentType;
+                    }
+                }
+            }
+            return null;
+        }));
+    }
+
+    private TypeToken extractType(List<TypeToken> args) {
+        if (args.size() >= 1) {
+            var head = args.head();
+
+            if (head instanceof GenericTypeToken) {
+                var gen = (GenericTypeToken) head;
+
+                if (gen.getTypeConstructor() == LiteralTypeToken.listTypeToken.getBase()) {
+                    var params = gen.getTypeParams();
+
+                    if (params.size() == 1) {
+                        return params.head();
+                    } else {
+                        return null;
+                    }
+                } else {
+                    return null;
+                }
+            } else {
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    static TypeToken buildList(List<TypeToken> args) {
+        var type = args.reduce((left, right) -> {
+            if (left.equals(right)) {
+                return left;
+            } else {
+                throw new RuntimeException("Lists currently only support one type at a time. Found types: " + left.getName() + " and " + right.getName());
+            }
+        });
+
+        return LiteralTypeToken.listTypeToken.construct(List.of(type));
     }
 }

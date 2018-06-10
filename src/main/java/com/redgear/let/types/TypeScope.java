@@ -6,4 +6,10 @@ public interface TypeScope {
 
     void exportType(String variable, TypeToken typeToken);
 
+    ModuleTypeScope importModule(String name);
+
+    void declareImport(String name, ModuleTypeScope module);
+
+    void declareType(String name, TypeToken typeToken);
+
 }

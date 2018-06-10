@@ -1,8 +1,5 @@
 package com.redgear.let.eval;
 
-/**
- * Created by LordBlackHole on 2017-01-01.
- */
 public interface Scope {
 
     Object getValue(String id);

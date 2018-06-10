@@ -2,6 +2,7 @@ package com.redgear.let.types;
 
 import com.redgear.let.ast.*;
 import com.redgear.let.ast.Module;
+import com.redgear.let.load.Loader;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,8 +14,14 @@ import static javaslang.Predicates.instanceOf;
 public class TypeChecker {
 
     private final Map<String, TypeToken> knownTypes = new HashMap<>();
+    private final Map<String, ModuleTypeScope> knownModules = new HashMap<>();
+    private final LibraryTypeScope typeScope;
+    private final Loader loader;
 
-    public TypeChecker() {
+    public TypeChecker(LibraryTypeScope typeScope, Loader loader) {
+        this.typeScope = typeScope;
+        this.loader = loader;
+        this.knownModules.putAll(typeScope.getCoreModules());
         this.knownTypes.put("String", LiteralTypeToken.stringTypeToken);
         this.knownTypes.put("Int", LiteralTypeToken.intTypeToken);
         this.knownTypes.put("Float", LiteralTypeToken.floatTypeToken);
@@ -22,8 +29,11 @@ public class TypeChecker {
 
     private TypeToken resolveTypeToken(TypeToken typeToken) {
         if (typeToken instanceof NamedTypeToken) {
-            String name = ((NamedTypeToken) typeToken).getName();
+            String name = typeToken.getName();
             return knownTypes.get(name);
+        } else if (typeToken instanceof FunctionTypeToken) {
+            var funcTypeToken = (FunctionTypeToken) typeToken;
+            return new FunctionTypeToken(funcTypeToken.getArgTypes().map(this::resolveTypeToken), resolveTypeToken(funcTypeToken.getResultType()));
         } else {
             return typeToken;
         }
@@ -42,10 +52,38 @@ public class TypeChecker {
 
 
     public Call visit(LocalTypeScope typeScope, Call ex) {
-        ex.getArguments().forEach(e -> visit(typeScope, e));
-        return ex;
-    }
+        var function = visit(typeScope, ex.getMethod());
+        var funcType = function.getTypeToken();
+        var args = ex.getArguments().map(e -> visit(typeScope, e));
+        var argTypes = args.map(Expression::getTypeToken);
 
+        if (funcType instanceof FunctionTypeToken) {
+            var funcTypeToken = (FunctionTypeToken) funcType;
+
+            if (funcTypeToken.getArgTypes().equals(argTypes)) {
+                return new Call(ex.getLocation(), funcTypeToken.getResultType(), function, args);
+            } else {
+                var expected = funcTypeToken.getArgTypes().map(TypeToken::getName).mkString(", ");
+                var actual = argTypes.map(TypeToken::getName).mkString(", ");
+
+                throw new RuntimeException("Attempt to call function with wrong types of arguments. Expected: (" + expected + "), found: (" + actual + "). " + ex.getLocation().print());
+            }
+        } if (funcType instanceof DynamicFunctionTypeToken) {
+            var dynamicFunction = (DynamicFunctionTypeToken) funcType;
+            var resultType = dynamicFunction.getResultType(argTypes);
+
+            if (resultType == null) {
+                var actual = argTypes.map(TypeToken::getName).mkString(", ");
+
+                throw new RuntimeException("Attempt to call function with wrong types of arguments. Function: (" + dynamicFunction.getName() + "), found: (" + actual + "). " + ex.getLocation().print());
+            } else {
+                return new Call(ex.getLocation(), resultType, function, args);
+            }
+
+        } else {
+            throw new RuntimeException("Attempt to call a non-function: " + ex.getLocation().print());
+        }
+    }
 
     public Export visit(LocalTypeScope typeScope, Export ex) {
         var body = visit(typeScope, ex.getExpression());
@@ -55,23 +93,45 @@ public class TypeChecker {
 
 
     public Import visit(LocalTypeScope typeScope, Import ex) {
-        // TODO: check imports
-        typeScope.declareType(ex.getAlias(), LiteralTypeToken.nullTypeToken);
+        var maybeModule = typeScope.importModule(ex.getAlias());
+
+        if (maybeModule == null) {
+            var module = loadModule(ex.getPath());
+            typeScope.declareImport(ex.getAlias(), module);
+        }
+
         return ex;
+    }
+
+    private ModuleTypeScope loadModule(String name){
+        if (this.knownModules.containsKey(name)) {
+            return this.knownModules.get(name);
+        } else {
+            var module = loader.loadModule(name);
+            var scope = visit(module);
+            this.knownModules.put(name, scope);
+            return scope;
+        }
     }
 
 
     public Lambda visit(LocalTypeScope typeScope, Lambda ex) {
         var innerScope = new LocalTypeScope(typeScope);
-        var resultType = resolveTypeToken(ex.getTypeToken());
 
-        ex.getVariables()
-                .map(arg -> arg.setTypeToken(resolveTypeToken(arg.getTypeToken())))
-                .forEach(arg -> innerScope.declareType(arg.getName(), sureType(arg.getTypeToken())));
+        var args = ex.getVariables()
+                .map(arg -> arg.setTypeToken(resolveTypeToken(arg.getTypeToken())));
+        args.forEach(arg -> innerScope.declareType(arg.getName(), sureType(arg.getTypeToken())));
 
         var body = ex.getStatements().map(e -> visit(innerScope, e));
+        var bodyTypeToken = body.last().getTypeToken();
 
-        return ex.setTypeToken(resultType).setBody(body);
+        var resultType = resolveTypeToken(ex.getTypeToken().getResultType());
+
+        if (bodyTypeToken != null && resultType != null && !resultType.equals(bodyTypeToken)) {
+            throw new RuntimeException("Function declared type differs from returned type. Declared: " + ex.getTypeToken().getName() + ", returns: " + bodyTypeToken.getName() + " " + ex.getLocation().print());
+        }
+
+        return new Lambda(ex.getLocation(), new FunctionTypeToken(args.map(Variable::getTypeToken), bodyTypeToken), args, body);
     }
 
 
@@ -80,13 +140,29 @@ public class TypeChecker {
     }
 
 
-    public ModuleTypeScope visit(LibraryTypeScope typeScope, Module module) {
+    public ModuleTypeScope visit(Module module) {
         var moduleScope = new ModuleTypeScope(typeScope);
         var localScope = new LocalTypeScope(moduleScope);
 
         module.getExpressions().forEach(ex -> visit(localScope, ex));
 
         return moduleScope;
+    }
+
+    public ModuleAccess visit(LocalTypeScope typeScope, ModuleAccess ex) {
+        var moduleScope = typeScope.importModule(ex.getModule());
+
+        if (moduleScope != null) {
+            var local = moduleScope.getType(ex.getAccess());
+
+            if (local != null) {
+                return ex.setTypeToken(local);
+            } else {
+                throw new RuntimeException("Module " + ex.getModule() + " has no export named " + ex.getAccess() + " " + ex.getLocation().print());
+            }
+        } else {
+            throw new RuntimeException("No module named " + ex.getModule() + " imported in current scope " + ex.getLocation().print());
+        }
     }
 
 
@@ -114,7 +190,8 @@ public class TypeChecker {
                 Case(instanceOf(Lambda.class), ex -> visit(typeScope, ex)),
                 Case(instanceOf(Literal.class), ex -> visit(typeScope, ex)),
                 Case(instanceOf(Parenthesized.class), ex -> visit(typeScope, ex)),
-                Case(instanceOf(Variable.class), ex -> visit(typeScope, ex))
+                Case(instanceOf(Variable.class), ex -> visit(typeScope, ex)),
+                Case(instanceOf(ModuleAccess.class), ex -> visit(typeScope, ex))
         );
     }
 }

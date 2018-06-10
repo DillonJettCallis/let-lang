@@ -7,7 +7,6 @@ import com.redgear.let.eval.Interpreter;
 import com.redgear.let.load.Loader;
 import com.redgear.let.types.LibraryTypeScope;
 import com.redgear.let.types.TypeChecker;
-import com.redgear.let.types.lib.CoreLibraryTypes;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +15,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Paths;
 
 class AntlrTest {
 
@@ -39,8 +39,8 @@ class AntlrTest {
 
         try (var writer = new FileWriter(path.toString());
              var buffered = new BufferedWriter(writer)) {
-            var loader = new Loader();
-            Module module = loader.loadModule("src/test/resources/BasicAssignmentTest.let");
+            var loader = new Loader(Paths.get("src/test/resources"));
+            Module module = loader.loadModule("BasicAssignmentTest");
 
             var printer = new AstPrinter(buffered);
 
@@ -49,14 +49,13 @@ class AntlrTest {
     }
 
     @Test
-    void basicTypecheckerTest() {
-        var loader = new Loader();
-        var module = loader.loadModule("src/test/resources/BasicAssignmentTest.let");
+    void basicTypeCheckerTest() {
+        var loader = new Loader(Paths.get("src/test/resources"));
+        Module module = loader.loadModule("BasicAssignmentTest");
+
         var libraryScope = new LibraryTypeScope();
-        var libraryTypes = new CoreLibraryTypes();
-        libraryTypes.addTypes(libraryScope);
-        var typeChecker = new TypeChecker();
-        var types = typeChecker.visit(libraryScope, module);
+        var typeChecker = new TypeChecker(libraryScope, loader);
+        var types = typeChecker.visit(module);
 
         log.debug("TypeChecker output: {}", types);
     }

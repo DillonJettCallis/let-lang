@@ -4,10 +4,7 @@ import com.redgear.let.antlr.LetLexer;
 import com.redgear.let.antlr.LetParser;
 import com.redgear.let.ast.*;
 import com.redgear.let.ast.Module;
-import com.redgear.let.eval.lib.CoreLibrary;
-import com.redgear.let.eval.lib.ListLibrary;
-import com.redgear.let.eval.lib.MapLibrary;
-import com.redgear.let.eval.lib.StringLibrary;
+import com.redgear.let.lib.*;
 import javaslang.collection.List;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -26,9 +23,6 @@ import static javaslang.API.Case;
 import static javaslang.API.Match;
 import static javaslang.Predicates.instanceOf;
 
-/**
- * Created by LordBlackHole on 2017-01-07.
- */
 public class Interpreter {
 
     private static final Logger log = LoggerFactory.getLogger(Interpreter.class);
@@ -43,10 +37,10 @@ public class Interpreter {
         this.srcPath = Paths.get(modulePath).toAbsolutePath();
         this.libraryScope = new LibraryScope();
         this.caller = new Caller(this);
-        new CoreLibrary(this).buildLibrary(libraryScope);
+        new CoreLibrary().buildLibrary(this, libraryScope);
 
         addLibModule(new MapLibrary());
-        addLibModule(new ListLibrary(this));
+        addLibModule(new ListLibrary());
         addLibModule(new StringLibrary());
     }
 
@@ -54,7 +48,7 @@ public class Interpreter {
         String name = definition.getName();
         ModuleScope moduleScope = new ModuleScope(libraryScope);
 
-        definition.buildLibrary(moduleScope);
+        definition.buildLibrary(this, moduleScope);
 
         libraryModules.put(name, moduleScope);
     }

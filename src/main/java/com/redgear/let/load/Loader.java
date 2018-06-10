@@ -10,12 +10,27 @@ import org.antlr.v4.runtime.CommonTokenStream;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Loader {
+    private final Map<String, Module> loadedModules = new HashMap<>();
+    private final Path base;
 
-    public Module loadModule(String filePath) {
+    public Loader(Path base) {
+        this.base = base;
+    }
+
+    public Module loadModule(String moduleName) {
+        if (loadedModules.containsKey(moduleName)) {
+            return loadedModules.get(moduleName);
+        }
+
+        var modulePath = base.resolve(moduleName.replace(".", "/") + ".let");
+
         try {
-            CharStream fileStream = CharStreams.fromFileName(filePath, Charset.forName("UTF-8"));
+            CharStream fileStream = CharStreams.fromPath(modulePath, Charset.forName("UTF-8"));
 
             LetLexer lexer = new LetLexer(fileStream);
 
@@ -27,9 +42,11 @@ public class Loader {
 
             AstBuilder builder = new AstBuilder();
 
-            return builder.build(context);
+            Module result = builder.build(context);
+            loadedModules.put(moduleName, result);
+            return result;
         } catch (IOException e) {
-            throw new RuntimeException("Failed to import module: " + filePath, e);
+            throw new RuntimeException("Failed to import module: " + modulePath, e);
         }
     }
 }

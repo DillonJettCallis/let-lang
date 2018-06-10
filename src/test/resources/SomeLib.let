@@ -6,7 +6,7 @@ export fun multiply(l: Int, r: Int): Int {
 }
 
 
-export fun divide(l: Int, r: Int): Int {
+export fun divide(l: Int, r: Int): Float {
  l / r
 }
 

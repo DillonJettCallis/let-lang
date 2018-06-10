@@ -1,25 +1,22 @@
-package com.redgear.let.eval.lib;
+package com.redgear.let.lib;
 
-import com.redgear.let.ast.Call;
 import com.redgear.let.ast.Expression;
-import com.redgear.let.ast.Lambda;
 import com.redgear.let.ast.Variable;
 import com.redgear.let.eval.*;
+import com.redgear.let.types.*;
 import javaslang.Tuple;
 import javaslang.collection.List;
 
 import java.util.Objects;
 
-public class CoreLibrary {
+public class CoreLibrary implements ModuleDefinition {
 
-
-    private final Interpreter interpreter;
-
-    public CoreLibrary(Interpreter interpreter) {
-        this.interpreter = interpreter;
+    @Override
+    public String getName() {
+        return "Core.Core";
     }
 
-    public void buildLibrary(LibraryScope libraryScope) {
+    public void buildLibrary(Interpreter interpreter, Scope libraryScope) {
         libraryScope.putValue("_", null);
         libraryScope.putValue("true", true);
         libraryScope.putValue("false", false);
@@ -254,9 +251,9 @@ public class CoreLibrary {
             }
         });
 
-        libraryScope.putFunc("<=", (scope, args) -> {
+        libraryScope.putFunc("=<", (scope, args) -> {
 
-            validateArgs("<=", args, 2);
+            validateArgs("=<", args, 2);
 
             Object left = args.get(0);
             Object right = args.get(1);
@@ -351,6 +348,124 @@ public class CoreLibrary {
         });
     }
 
+    public void buildTypes(TypeScope typeScope) {
+        typeScope.declareType("_", LiteralTypeToken.nullTypeToken);
+        typeScope.declareType("true", LiteralTypeToken.booleanTypeToken);
+        typeScope.declareType("false", LiteralTypeToken.booleanTypeToken);
+        typeScope.declareType("print", new DynamicFunctionTypeToken("print", args -> LiteralTypeToken.stringTypeToken));
+
+        var boolOp = binaryOp(LiteralTypeToken.booleanTypeToken);
+
+        typeScope.declareType("+", new DynamicFunctionTypeToken("+", args -> {
+            if (args.size() != 2) {
+                return null;
+            } else {
+                var first = args.get(0);
+                var second = args.get(0);
+
+                if (first == LiteralTypeToken.stringTypeToken || second == LiteralTypeToken.stringTypeToken) {
+                    return LiteralTypeToken.stringTypeToken;
+                } else {
+                    return numericOp(first, second);
+                }
+            }
+        }));
+        typeScope.declareType("-", new DynamicFunctionTypeToken("-", args -> {
+            if (args.size() == 2) {
+                var first = args.get(0);
+                var second = args.get(0);
+
+                return numericOp(first, second);
+            } else if (args.size() == 1) {
+                var first = args.get(0);
+
+                if (first == LiteralTypeToken.intTypeToken || first == LiteralTypeToken.floatTypeToken) {
+                    return first;
+                } else {
+                    return null;
+                }
+            } else {
+                return null;
+            }
+        }));
+        typeScope.declareType("*", new DynamicFunctionTypeToken("*", this::binaryNumericOp));
+        typeScope.declareType("/", new DynamicFunctionTypeToken("/", args -> {
+            if (args.size() != 2) {
+                return null;
+            } else {
+                var first = args.get(0);
+                var second = args.get(0);
+
+                if ((first == LiteralTypeToken.intTypeToken || first == LiteralTypeToken.floatTypeToken) && (second == LiteralTypeToken.intTypeToken || second == LiteralTypeToken.floatTypeToken)) {
+                    return LiteralTypeToken.floatTypeToken;
+                } else {
+                    return null;
+                }
+            }
+        }));
+        typeScope.declareType("**", new DynamicFunctionTypeToken("**", this::binaryNumericOp));
+
+        typeScope.declareType("&&", boolOp);
+        typeScope.declareType("||", boolOp);
+        typeScope.declareType("!", new FunctionTypeToken(List.of(LiteralTypeToken.booleanTypeToken), LiteralTypeToken.booleanTypeToken));
+        typeScope.declareType("?", new DynamicFunctionTypeToken("?", args -> {
+            if (args.size() != 1) {
+                return null;
+            } else {
+                return LiteralTypeToken.booleanTypeToken;
+            }
+        }));
+
+        typeScope.declareType("==", new DynamicFunctionTypeToken("==", args -> {
+            if (args.size() != 2) {
+                return null;
+            } else {
+                return LiteralTypeToken.booleanTypeToken;
+            }
+        }));
+        typeScope.declareType("!=", new DynamicFunctionTypeToken("==", args -> {
+            if (args.size() != 2) {
+                return null;
+            } else {
+                return LiteralTypeToken.booleanTypeToken;
+            }
+        }));
+        typeScope.declareType("<", new DynamicFunctionTypeToken("<", this::compareOp));
+        typeScope.declareType(">", new DynamicFunctionTypeToken(">", this::compareOp));
+        typeScope.declareType(">=", new DynamicFunctionTypeToken(">=", this::compareOp));
+        typeScope.declareType("=<", new DynamicFunctionTypeToken("=<", this::compareOp));
+
+        typeScope.declareType("if", new DynamicFunctionTypeToken("if", args -> {
+            if (args.size() != 2 && args.size() != 3) {
+                return null;
+            } else {
+                var condition = args.get(0);
+                if (condition == LiteralTypeToken.booleanTypeToken) {
+                    var thenBlock = args.get(1);
+
+                    if (args.size() == 3) {
+                        var elseBlock = args.get(2);
+                        if (thenBlock == elseBlock) {
+                            return thenBlock;
+                        } else {
+                            return null;
+                        }
+                    } else {
+                        return thenBlock;
+                    }
+                } else {
+                    return null;
+                }
+            }
+        }));
+
+        typeScope.declareType("List", LiteralTypeToken.listTypeToken);
+        typeScope.declareType("Map", LiteralTypeToken.mapTypeToken);
+
+        typeScope.declareType("$buildList", new DynamicFunctionTypeToken("$buildList", ListLibrary::buildList));
+        typeScope.declareType("$buildMap", new DynamicFunctionTypeToken("$buildMap", MapLibrary::buildMap));
+    }
+
     private void validateArgs(String op, List<?> args, int values) {
         int size = args.size();
 
@@ -365,6 +480,48 @@ public class CoreLibrary {
         if (size < min || size > max) {
             throw new RuntimeException("Wrong number of arguments for function '" + op + "', found: " + args);
         }
+    }
+
+    private TypeToken binaryNumericOp(List<TypeToken> args) {
+        if (args.size() != 2) {
+            return null;
+        } else {
+            var first = args.get(0);
+            var second = args.get(0);
+
+            return numericOp(first, second);
+        }
+    }
+
+    private TypeToken numericOp(TypeToken first, TypeToken second) {
+        if (first == LiteralTypeToken.intTypeToken && second == LiteralTypeToken.intTypeToken) {
+            return LiteralTypeToken.intTypeToken;
+        } else if ((first == LiteralTypeToken.intTypeToken || first == LiteralTypeToken.floatTypeToken) && (second == LiteralTypeToken.intTypeToken || second == LiteralTypeToken.floatTypeToken)) {
+            return LiteralTypeToken.floatTypeToken;
+        } else {
+            return null;
+        }
+    }
+
+    private TypeToken compareOp(List<TypeToken> args) {
+        if (args.size() != 2) {
+            return null;
+        } else {
+            var first = args.get(0);
+            var second = args.get(0);
+
+            if (first == LiteralTypeToken.stringTypeToken || second == LiteralTypeToken.stringTypeToken) {
+                return LiteralTypeToken.booleanTypeToken;
+            } else if ((first == LiteralTypeToken.intTypeToken || first == LiteralTypeToken.floatTypeToken) && (second == LiteralTypeToken.intTypeToken || second == LiteralTypeToken.floatTypeToken)) {
+                return LiteralTypeToken.booleanTypeToken;
+            } else {
+                return null;
+            }
+        }
+    }
+
+    private TypeToken binaryOp(TypeToken source) {
+        return new FunctionTypeToken(List.of(source, source), source);
     }
 
 }

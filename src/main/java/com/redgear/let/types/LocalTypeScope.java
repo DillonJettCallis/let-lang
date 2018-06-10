@@ -32,4 +32,12 @@ public class LocalTypeScope implements TypeScope {
         parent.exportType(variable, typeToken);
     }
 
+    public ModuleTypeScope importModule(String name) {
+        return parent.importModule(name);
+    }
+
+    public void declareImport(String name, ModuleTypeScope module) {
+        parent.declareImport(name, module);
+    }
+
 }

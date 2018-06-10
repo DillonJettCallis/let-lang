@@ -1,6 +1,6 @@
 
 
-export fun divide (l: Int, r: Int): Int { l / r}
+export fun divide (l: Int, r: Int): Float { l / r}
 
 
 

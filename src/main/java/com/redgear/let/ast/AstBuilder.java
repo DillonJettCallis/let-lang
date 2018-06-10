@@ -1,7 +1,10 @@
 package com.redgear.let.ast;
 
 import com.redgear.let.antlr.LetParser.*;
+import com.redgear.let.types.FunctionTypeToken;
+import com.redgear.let.types.GenericTypeToken;
 import com.redgear.let.types.NamedTypeToken;
+import com.redgear.let.types.TypeToken;
 import javaslang.collection.*;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -21,7 +24,7 @@ public class AstBuilder {
             "|/", "flatMap",
             "|?", "filter",
             "|!", "forEach",
-            "|&", "fold");
+            "|&", "reduce");
 
     public AstBuilder() {
 
@@ -59,18 +62,22 @@ public class AstBuilder {
     }
 
     private Lambda build(FunctionExpressionContext context) {
-        List<Variable> args = List.ofAll(context.LocalIdentifier()).map(this::makeVariable);
+        var argTypes = List.ofAll(context.argTypes).map(this::buildTypeToken);
+        var args = List.ofAll(context.LocalIdentifier()).map(this::makeVariable)
+                .zip(argTypes)
+                .map(pair -> pair._1.setTypeToken(pair._2));
 
-        List<Expression> expressions = List.ofAll(context.expression()).map(this::build);
+        var body = List.ofAll(context.expression()).map(this::build);
 
-        return new Lambda(new Location(context.getStart()), null, args, expressions);
+        return new Lambda(new Location(context.getStart()), new FunctionTypeToken(argTypes, null), args, body);
     }
 
     private Expression build(FunctionStatementContext context) {
         var exported = context.exported != null;
 
-        var types = List.ofAll(context.argTypes).map(type -> new NamedTypeToken(type.getText()));
-        var resultType = new NamedTypeToken(context.resultType.getText());
+        var types = List.ofAll(context.argTypes).map(this::buildTypeToken);
+        var resultType = buildTypeToken(context.resultType);
+        var functionType = new FunctionTypeToken(types, resultType);
         var ids = List.ofAll(context.LocalIdentifier());
 
         var id = makeVariable(ids.head());
@@ -79,13 +86,28 @@ public class AstBuilder {
 
         var expressions = List.ofAll(context.expression()).map(this::build);
 
-        var assignment = new Assignment(new Location(context.getStart()), null, id, new Lambda(new Location(context.getStart()), resultType, args, expressions));
+        var assignment = new Assignment(new Location(context.getStart()), null, id, new Lambda(new Location(context.getStart()), functionType, args, expressions));
 
         if (exported) {
             return new Export(new Location(context.getStart()), null, id.getName(), assignment);
         } else {
             return assignment;
         }
+    }
+
+    private TypeToken buildTypeToken(TypeExpressionContext con) {
+        return Match(con).of(
+                Case(instanceOf(TypeIdentifierContext.class), context -> new NamedTypeToken(context.ModuleIdentifier().getText())),
+                Case(instanceOf(TypeFunctionIdentifierContext.class), context -> {
+                    return new FunctionTypeToken(List.ofAll(context.argTypes).map(this::buildTypeToken), buildTypeToken(context.resultType));
+                }),
+                Case(instanceOf(TypeGenericIdentifierContext.class), context -> {
+                    var typeConstructor = buildTypeToken(context.type);
+                    var typeParams = List.ofAll(context.typeParams).map(this::buildTypeToken);
+
+                    return new GenericTypeToken(typeConstructor, typeParams);
+                })
+        );
     }
 
     private Call build(CallExpressionContext context) {
@@ -96,11 +118,11 @@ public class AstBuilder {
         return new Call(new Location(context.start), null, method, args);
     }
 
-    private Call build(ModuleAccessExpressionContext context) {
-        Expression ex = build(context.expression());
-        Literal var = new Literal(new Location(context.LocalIdentifier().getSymbol()), context.LocalIdentifier().getText());
+    private ModuleAccess build(ModuleAccessExpressionContext context) {
+        var moduleName = context.ModuleIdentifier().getText();
+        var localName = context.LocalIdentifier().getText();
 
-        return new Call(new Location(context.getStart()), null, new Variable(var.getLocation(), null, "."), List.of(ex, var));
+        return new ModuleAccess(new Location(context.getStart()), null, moduleName, localName);
     }
 
     private Call build(UnaryOpExpressionContext context) {
@@ -133,10 +155,6 @@ public class AstBuilder {
 
     private Variable build(LocalIdentifierExpressionContext context) {
         return makeVariable(context.LocalIdentifier());
-    }
-
-    private Variable build(ModuleIdentifierExpressionContext context) {
-        return makeVariable(context.ModuleIdentifier());
     }
 
     private Literal build(IntLiteralExpressionContext context) {
@@ -209,7 +227,6 @@ public class AstBuilder {
                 Case(instanceOf(BinaryOpExpressionContext.class), this::build),
                 Case(instanceOf(ParenthesizedExpressionContext.class), this::build),
                 Case(instanceOf(LocalIdentifierExpressionContext.class), this::build),
-                Case(instanceOf(ModuleIdentifierExpressionContext.class), this::build),
                 Case(instanceOf(IntLiteralExpressionContext.class), this::build),
                 Case(instanceOf(FloatLiteralExpressionContext.class), this::build),
                 Case(instanceOf(StringLiteralExpressionContext.class), this::build),
@@ -224,12 +241,7 @@ public class AstBuilder {
         return new Variable(new Location(node.getSymbol()), null, node.getText());
     }
 
-    private Call buildQualifiedFunc(Location location, String module, String function) {
-        Variable modVar = new Variable(location, null, module);
-        Literal funVar = new Literal(location, function);
-
-        Variable dotAccess = new Variable(location, null, ".");
-
-        return new Call(location, null, dotAccess, List.of(modVar, funVar));
+    private ModuleAccess buildQualifiedFunc(Location location, String module, String function) {
+        return new ModuleAccess(location, null, module, function);
     }
 }

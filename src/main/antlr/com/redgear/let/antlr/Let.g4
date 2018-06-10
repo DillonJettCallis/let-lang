@@ -24,8 +24,8 @@ expression
  : Let LocalIdentifier '=' expression ';'? # AssignmentExpression
  | 'if' condition=expression '{' thenExpressions+=expression '}' ('else' '{' elseExpressions+=expression '}')? # IfExpression
  | 'for' '(' local=LocalIdentifier 'in' collection=expression ')' '{' body=expression+ '}' # ForExpression
- | '{' (LocalIdentifier (',' LocalIdentifier)* )? '=>' expression+ '}' # FunctionExpression
- | expression '.' LocalIdentifier  # ModuleAccessExpression
+ | '{' (LocalIdentifier ':' argTypes+=typeExpression (',' LocalIdentifier ':' argTypes+=typeExpression)* )? '=>' expression+ '}' # FunctionExpression
+ | ModuleIdentifier '.' LocalIdentifier  # ModuleAccessExpression
  | expression op=('|' | '|?' | '|/' | '|!' | '|&') expression # BinaryOpExpression
  | method=expression '(' (args+=expression (',' args+=expression)*)? ')' # CallExpression
  | args+=expression '::' method=expression '(' (args+=expression (',' args+=expression)*)? ')' # CallExpression
@@ -34,11 +34,10 @@ expression
  | op='!' expression # UnaryOpExpression
  | expression op=('*' | '/' | '**') expression # BinaryOpExpression
  | expression op=('+' | '-') expression # BinaryOpExpression
- | expression op=('<' | '>' | '>=' | '<=') expression # BinaryOpExpression
+ | expression op=('<' | '>' | '>=' | '=<') expression # BinaryOpExpression
  | expression op=('==' | '!=') expression # BinaryOpExpression
  | expression op='&&' expression # BinaryOpExpression
  | expression op='||' expression # BinaryOpExpression
- | ModuleIdentifier # ModuleIdentifierExpression
  | LocalIdentifier # LocalIdentifierExpression
  | IntLiteral # IntLiteralExpression
  | FloatLiteral # FloatLiteralExpression
@@ -49,9 +48,9 @@ expression
  ;
 
 typeExpression
- : ModuleIdentifier #TypeIdentifier
- | type=ModuleIdentifier '<' typeParams+=ModuleIdentifier (',' typeParams+=ModuleIdentifier)* '>' #TypeGenericIdentifier
- | '{' (typeParams+=ModuleIdentifier (',' typeParams+=ModuleIdentifier)*)? '=>' typeExpression '}' #TypeFunctionIdentifier
+ : ModuleIdentifier # TypeIdentifier
+ | type=typeExpression '<' typeParams+=typeExpression (',' typeParams+=typeExpression)* '>' # TypeGenericIdentifier
+ | '{' (argTypes+=typeExpression (',' argTypes+=typeExpression)*)? '=>' resultType=typeExpression '}' # TypeFunctionIdentifier
  ;
 
 BinaryOp
