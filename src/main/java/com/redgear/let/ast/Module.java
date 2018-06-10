@@ -1,5 +1,6 @@
 package com.redgear.let.ast;
 
+import com.redgear.let.types.TypeToken;
 import javaslang.collection.List;
 
 public class Module implements Expression {
@@ -29,5 +30,10 @@ public class Module implements Expression {
     @Override
     public Location getLocation() {
         return location;
+    }
+
+    @Override
+    public TypeToken getTypeToken() {
+        return null;
     }
 }

@@ -1,22 +1,22 @@
 package com.redgear.let.ast;
 
+import com.redgear.let.types.TypeToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Created by LordBlackHole on 2016-12-30.
- */
 public class Assignment implements Expression {
 
     private static final Logger log = LoggerFactory.getLogger(Assignment.class);
     private final Location location;
+    private final TypeToken typeToken;
     private final Variable var;
-    private final Expression exp;
+    private final Expression body;
 
-    public Assignment(Location location, Variable var, Expression exp) {
+    public Assignment(Location location, TypeToken typeToken, Variable var, Expression body) {
         this.location = location;
+        this.typeToken = typeToken;
         this.var = var;
-        this.exp = exp;
+        this.body = body;
 
     }
 
@@ -24,22 +24,21 @@ public class Assignment implements Expression {
         return var;
     }
 
-    public Expression getExp() {
-        return exp;
+    public Expression getBody() {
+        return body;
     }
 
-
-
-    @Override
-    public String toString() {
-        return "{\"className\": \"" + Assignment.class + "\"" +
-                ",\"var\": \"" + var + "\"" +
-                ",\"exp\": \"" + exp + "\"" +
-                '}';
+    public Assignment setBody(Expression body) {
+        return new Assignment(location, body.getTypeToken(), var, body);
     }
 
     @Override
     public Location getLocation() {
         return location;
+    }
+
+    @Override
+    public TypeToken getTypeToken() {
+        return typeToken;
     }
 }

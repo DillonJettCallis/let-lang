@@ -12,7 +12,8 @@ module
 
 statement
  : portIn # ImportStatement
- | exported=Export? 'fun' id=LocalIdentifier '(' (args+=LocalIdentifier (',' args+=LocalIdentifier)* )? ')' '{' body=expression+ '}' # FunctionStatement
+ | exported=Export? 'fun' id=LocalIdentifier '(' (args+=LocalIdentifier ':' argTypes+=typeExpression (',' args+=LocalIdentifier ':' argTypes+=typeExpression )* )? ')' ':' resultType=typeExpression
+    '{' body=expression+ '}' # FunctionStatement
  ;
 
 portIn
@@ -47,6 +48,12 @@ expression
  | '(' expression+ ')' # ParenthesizedExpression
  ;
 
+typeExpression
+ : ModuleIdentifier #TypeIdentifier
+ | type=ModuleIdentifier '<' typeParams+=ModuleIdentifier (',' typeParams+=ModuleIdentifier)* '>' #TypeGenericIdentifier
+ | '{' (typeParams+=ModuleIdentifier (',' typeParams+=ModuleIdentifier)*)? '=>' typeExpression '}' #TypeFunctionIdentifier
+ ;
+
 BinaryOp
  : '+'
  | '-'
@@ -73,6 +80,10 @@ Import : 'import' ;
 From : 'from' ;
 Export : 'export' ;
 
+//TypeIdentifier
+// : TypeIdentifierStart IdentifierEnd*
+// ;
+
 ModuleIdentifier
  : ModuleIdentifierStart IdentifierEnd*
  ;
@@ -81,6 +92,10 @@ LocalIdentifier
  : LocalIdentifierStart IdentifierEnd*
  | '_'
  ;
+
+//fragment TypeIdentifierStart
+// : [A-Z]
+// ;
 
 fragment ModuleIdentifierStart
  : [A-Z]

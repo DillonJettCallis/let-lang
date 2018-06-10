@@ -18,14 +18,14 @@ public class Compile2JsVisitor implements AstVisitor {
     }
 
 
-    private Void compile(Assignment ex) {
+    public Void visit(Assignment ex) {
         writer.append("const ", ex.getVar().getName(), " = ")
-                .append(ex.getExp())
+                .append(ex.getBody())
                 .append(";");
         return null;
     }
 
-    private Void compile(Call ex) {
+    public Void visit(Call ex) {
         if (ex.getName().equals("if")) {
             compileIf(ex);
         } else if (ex.getName().equals(".")) {
@@ -56,7 +56,7 @@ public class Compile2JsVisitor implements AstVisitor {
                 .append(ex.getArguments().get(1))
                 .append(")")
                 .append(":(")
-                .append(ex.getArguments().getOrElse(new Variable(null, "_")))
+                .append(ex.getArguments().getOrElse(new Variable(null, null, "_")))
                 .append("))");
 
         return null;
@@ -91,19 +91,19 @@ public class Compile2JsVisitor implements AstVisitor {
         return null;
     }
 
-    private Void compile(Export ex) {
+    public Void visit(Export ex) {
         writer.append("export const ", ex.getName(), " = ")
                 .append(ex.getExpression())
                 .append(";");
         return null;
     }
 
-    private Void compile(Import ex) {
+    public Void visit(Import ex) {
         writer.append("import * as ", ex.getAlias(), " from '", ex.getPath(), "';");
         return null;
     }
 
-    private Void compile(Lambda ex) {
+    public Void visit(Lambda ex) {
         writer.append("((");
         for (int i = 0; i < ex.getVariables().size(); i++) {
             writer.append(ex.getVariables().get(i));
@@ -119,7 +119,7 @@ public class Compile2JsVisitor implements AstVisitor {
         return null;
     }
 
-    private Void compile(Literal ex) {
+    public Void visit(Literal ex) {
         Match(ex.getValue()).of(
                 Case(instanceOf(String.class), value -> writer.append("'", value, "'")),
                 Case(instanceOf(Integer.class), value -> writer.append(String.valueOf(value))),
@@ -128,7 +128,7 @@ public class Compile2JsVisitor implements AstVisitor {
         return null;
     }
 
-    private Void compile(com.redgear.let.ast.Module ex) {
+    public Void visit(com.redgear.let.ast.Module ex) {
         for (Expression next : ex.getExpressions()) {
             writer.append(next)
                     .append(";");
@@ -136,7 +136,7 @@ public class Compile2JsVisitor implements AstVisitor {
         return null;
     }
 
-    private Void compile(Parenthesized ex) {
+    public Void visit(Parenthesized ex) {
         writer.append("(");
         for (int i = 0; i < ex.getExpressions().size(); i++) {
             writer.append(ex.getExpressions().get(i));
@@ -148,27 +148,13 @@ public class Compile2JsVisitor implements AstVisitor {
         return null;
     }
 
-    private Void compile(Variable ex) {
+    public Void visit(Variable ex) {
         if (ex.getName().equals("_")) {
             writer.append("undefined");
         } else {
             writer.append(ex.getName());
         }
         return null;
-    }
-
-    public void visit(Expression expression) {
-        Match(expression).of(
-                Case(instanceOf(Assignment.class), this::compile),
-                Case(instanceOf(Call.class), this::compile),
-                Case(instanceOf(Export.class), this::compile),
-                Case(instanceOf(Import.class), this::compile),
-                Case(instanceOf(Lambda.class), this::compile),
-                Case(instanceOf(Literal.class), this::compile),
-                Case(instanceOf(com.redgear.let.ast.Module.class), this::compile),
-                Case(instanceOf(Parenthesized.class), this::compile),
-                Case(instanceOf(Variable.class), this::compile)
-        );
     }
 
 }

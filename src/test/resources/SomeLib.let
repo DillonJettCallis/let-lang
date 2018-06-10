@@ -1,12 +1,12 @@
 
 
 
-export fun multiply(l, r) {
+export fun multiply(l: Int, r: Int): Int {
   l * r
 }
 
 
-export fun divide(l, r) {
+export fun divide(l: Int, r: Int): Int {
  l / r
 }
 

@@ -1,13 +1,13 @@
 package com.redgear.let.antlr;
 
 import com.redgear.let.AstPrinter;
-import com.redgear.let.ast.AstBuilder;
 import com.redgear.let.ast.Module;
 import com.redgear.let.compile2js.Compiler2js;
 import com.redgear.let.eval.Interpreter;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
+import com.redgear.let.load.Loader;
+import com.redgear.let.types.LibraryTypeScope;
+import com.redgear.let.types.TypeChecker;
+import com.redgear.let.types.lib.CoreLibraryTypes;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +16,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.Charset;
 
 class AntlrTest {
 
@@ -33,31 +32,33 @@ class AntlrTest {
     }
 
     @Test
-    void basicAntlrTest() throws IOException {
+    void basicAstTest() throws IOException {
         var path = new File("build/test/ast/withoutParens.json");
 
         path.getParentFile().mkdirs();
 
         try (var writer = new FileWriter(path.toString());
              var buffered = new BufferedWriter(writer)) {
-            CharStream fileStream = CharStreams.fromFileName("src/test/resources/BasicAssignmentTest.let", Charset.forName("UTF-8"));
-
-            LetLexer lexer = new LetLexer(fileStream);
-
-            CommonTokenStream tokens = new CommonTokenStream(lexer);
-
-            LetParser parser = new LetParser(tokens);
-
-            LetParser.ModuleContext context = parser.module();
-
-            AstBuilder builder = new AstBuilder();
-
-            Module module = builder.build(context);
+            var loader = new Loader();
+            Module module = loader.loadModule("src/test/resources/BasicAssignmentTest.let");
 
             var printer = new AstPrinter(buffered);
 
             printer.visit(module);
         }
+    }
+
+    @Test
+    void basicTypecheckerTest() {
+        var loader = new Loader();
+        var module = loader.loadModule("src/test/resources/BasicAssignmentTest.let");
+        var libraryScope = new LibraryTypeScope();
+        var libraryTypes = new CoreLibraryTypes();
+        libraryTypes.addTypes(libraryScope);
+        var typeChecker = new TypeChecker();
+        var types = typeChecker.visit(libraryScope, module);
+
+        log.debug("TypeChecker output: {}", types);
     }
 
 }

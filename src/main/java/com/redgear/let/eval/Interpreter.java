@@ -8,8 +8,6 @@ import com.redgear.let.eval.lib.CoreLibrary;
 import com.redgear.let.eval.lib.ListLibrary;
 import com.redgear.let.eval.lib.MapLibrary;
 import com.redgear.let.eval.lib.StringLibrary;
-import javaslang.API;
-import javaslang.Predicates;
 import javaslang.collection.List;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -114,7 +112,7 @@ public class Interpreter {
     }
 
     private Object eval(LocalScope scope, Assignment expression) {
-        Object value = eval(scope, expression.getExp());
+        Object value = eval(scope, expression.getBody());
         scope.putValue(expression.getVar().getName(), value);
         log.info("let {} = {}", expression.getVar().getName(), value);
         return value;
