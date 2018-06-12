@@ -1,10 +1,7 @@
 package com.redgear.let.ast;
 
 import com.redgear.let.antlr.LetParser.*;
-import com.redgear.let.types.FunctionTypeToken;
-import com.redgear.let.types.GenericTypeToken;
-import com.redgear.let.types.NamedTypeToken;
-import com.redgear.let.types.TypeToken;
+import com.redgear.let.types.*;
 import javaslang.collection.*;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -62,6 +59,7 @@ public class AstBuilder {
     }
 
     private Lambda build(FunctionExpressionContext context) {
+        // TODO: Parse and build generic functions
         var argTypes = List.ofAll(context.argTypes).map(this::buildTypeToken);
         var args = List.ofAll(context.LocalIdentifier()).map(this::makeVariable)
                 .zip(argTypes)
@@ -69,7 +67,7 @@ public class AstBuilder {
 
         var body = List.ofAll(context.expression()).map(this::build);
 
-        return new Lambda(new Location(context.getStart()), new FunctionTypeToken(argTypes, null), args, body);
+        return new Lambda(new Location(context.getStart()), new SimpleFunctionTypeToken(argTypes, null), args, body);
     }
 
     private Expression build(FunctionStatementContext context) {
@@ -77,7 +75,7 @@ public class AstBuilder {
 
         var types = List.ofAll(context.argTypes).map(this::buildTypeToken);
         var resultType = buildTypeToken(context.resultType);
-        var functionType = new FunctionTypeToken(types, resultType);
+        var functionType = new SimpleFunctionTypeToken(types, resultType);
         var ids = List.ofAll(context.LocalIdentifier());
 
         var id = makeVariable(ids.head());
@@ -99,7 +97,7 @@ public class AstBuilder {
         return Match(con).of(
                 Case(instanceOf(TypeIdentifierContext.class), context -> new NamedTypeToken(context.ModuleIdentifier().getText())),
                 Case(instanceOf(TypeFunctionIdentifierContext.class), context -> {
-                    return new FunctionTypeToken(List.ofAll(context.argTypes).map(this::buildTypeToken), buildTypeToken(context.resultType));
+                    return new SimpleFunctionTypeToken(List.ofAll(context.argTypes).map(this::buildTypeToken), buildTypeToken(context.resultType));
                 }),
                 Case(instanceOf(TypeGenericIdentifierContext.class), context -> {
                     var typeConstructor = buildTypeToken(context.type);
@@ -131,6 +129,14 @@ public class AstBuilder {
         Expression ex = build(context.expression());
 
         return new Call(new Location(context.getStart()), null, var, List.of(ex));
+    }
+
+    private Call build(UnaryNegOpExpressionContext context) {
+        Variable var = new Variable(new Location(context.op), null, "*");
+
+        Expression ex = build(context.expression());
+
+        return new Call(new Location(context.getStart()), null, var, List.of(ex, new Literal(new Location(context.op), -1)));
     }
 
     private Call build(BinaryOpExpressionContext context) {
@@ -224,6 +230,7 @@ public class AstBuilder {
                 Case(instanceOf(CallExpressionContext.class), this::build),
                 Case(instanceOf(ModuleAccessExpressionContext.class), this::build),
                 Case(instanceOf(UnaryOpExpressionContext.class), this::build),
+                Case(instanceOf(UnaryNegOpExpressionContext.class), this::build),
                 Case(instanceOf(BinaryOpExpressionContext.class), this::build),
                 Case(instanceOf(ParenthesizedExpressionContext.class), this::build),
                 Case(instanceOf(LocalIdentifierExpressionContext.class), this::build),

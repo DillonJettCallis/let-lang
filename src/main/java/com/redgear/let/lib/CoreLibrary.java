@@ -354,60 +354,29 @@ public class CoreLibrary implements ModuleDefinition {
         typeScope.declareType("false", LiteralTypeToken.booleanTypeToken);
         typeScope.declareType("print", new DynamicFunctionTypeToken("print", args -> LiteralTypeToken.stringTypeToken));
 
+        var opIntInt = new SimpleFunctionTypeToken(List.of(LiteralTypeToken.intTypeToken, LiteralTypeToken.intTypeToken), LiteralTypeToken.intTypeToken);
+        var opIntFloat = new SimpleFunctionTypeToken(List.of(LiteralTypeToken.intTypeToken, LiteralTypeToken.floatTypeToken), LiteralTypeToken.floatTypeToken);
+        var opFloatInt = new SimpleFunctionTypeToken(List.of(LiteralTypeToken.floatTypeToken, LiteralTypeToken.intTypeToken), LiteralTypeToken.floatTypeToken);
+        var opFloatFloat = new SimpleFunctionTypeToken(List.of(LiteralTypeToken.floatTypeToken, LiteralTypeToken.floatTypeToken), LiteralTypeToken.floatTypeToken);
+        var opNum = new OverloadedFunctionTypeToken(List.of(opIntInt, opIntFloat, opFloatInt, opFloatFloat));
+
+        var opString = new SimpleFunctionTypeToken(List.of(LiteralTypeToken.stringTypeToken, LiteralTypeToken.stringTypeToken), LiteralTypeToken.stringTypeToken);
+
+        typeScope.declareType("+", new OverloadedFunctionTypeToken(List.of(opString, opIntInt, opIntFloat, opFloatInt, opFloatFloat)));
+
+        typeScope.declareType("-", opNum);
+        typeScope.declareType("*", opNum);
+
+        var opIntIntToFloat = new SimpleFunctionTypeToken(List.of(LiteralTypeToken.intTypeToken, LiteralTypeToken.intTypeToken), LiteralTypeToken.floatTypeToken);
+
+        typeScope.declareType("/", new OverloadedFunctionTypeToken(List.of(opIntIntToFloat, opIntFloat, opFloatInt, opFloatFloat)));
+        typeScope.declareType("**", opNum);
+
         var boolOp = binaryOp(LiteralTypeToken.booleanTypeToken);
-
-        typeScope.declareType("+", new DynamicFunctionTypeToken("+", args -> {
-            if (args.size() != 2) {
-                return null;
-            } else {
-                var first = args.get(0);
-                var second = args.get(0);
-
-                if (first == LiteralTypeToken.stringTypeToken || second == LiteralTypeToken.stringTypeToken) {
-                    return LiteralTypeToken.stringTypeToken;
-                } else {
-                    return numericOp(first, second);
-                }
-            }
-        }));
-        typeScope.declareType("-", new DynamicFunctionTypeToken("-", args -> {
-            if (args.size() == 2) {
-                var first = args.get(0);
-                var second = args.get(0);
-
-                return numericOp(first, second);
-            } else if (args.size() == 1) {
-                var first = args.get(0);
-
-                if (first == LiteralTypeToken.intTypeToken || first == LiteralTypeToken.floatTypeToken) {
-                    return first;
-                } else {
-                    return null;
-                }
-            } else {
-                return null;
-            }
-        }));
-        typeScope.declareType("*", new DynamicFunctionTypeToken("*", this::binaryNumericOp));
-        typeScope.declareType("/", new DynamicFunctionTypeToken("/", args -> {
-            if (args.size() != 2) {
-                return null;
-            } else {
-                var first = args.get(0);
-                var second = args.get(0);
-
-                if ((first == LiteralTypeToken.intTypeToken || first == LiteralTypeToken.floatTypeToken) && (second == LiteralTypeToken.intTypeToken || second == LiteralTypeToken.floatTypeToken)) {
-                    return LiteralTypeToken.floatTypeToken;
-                } else {
-                    return null;
-                }
-            }
-        }));
-        typeScope.declareType("**", new DynamicFunctionTypeToken("**", this::binaryNumericOp));
 
         typeScope.declareType("&&", boolOp);
         typeScope.declareType("||", boolOp);
-        typeScope.declareType("!", new FunctionTypeToken(List.of(LiteralTypeToken.booleanTypeToken), LiteralTypeToken.booleanTypeToken));
+        typeScope.declareType("!", new SimpleFunctionTypeToken(List.of(LiteralTypeToken.booleanTypeToken), LiteralTypeToken.booleanTypeToken));
         typeScope.declareType("?", new DynamicFunctionTypeToken("?", args -> {
             if (args.size() != 1) {
                 return null;
@@ -521,7 +490,7 @@ public class CoreLibrary implements ModuleDefinition {
     }
 
     private TypeToken binaryOp(TypeToken source) {
-        return new FunctionTypeToken(List.of(source, source), source);
+        return new SimpleFunctionTypeToken(List.of(source, source), source);
     }
 
 }

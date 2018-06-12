@@ -29,7 +29,7 @@ expression
  | expression op=('|' | '|?' | '|/' | '|!' | '|&') expression # BinaryOpExpression
  | method=expression '(' (args+=expression (',' args+=expression)*)? ')' # CallExpression
  | args+=expression '::' method=expression '(' (args+=expression (',' args+=expression)*)? ')' # CallExpression
- | op='-' expression # UnaryOpExpression
+ | op='-' expression # UnaryNegOpExpression
  | op='?' expression # UnaryOpExpression
  | op='!' expression # UnaryOpExpression
  | expression op=('*' | '/' | '**') expression # BinaryOpExpression

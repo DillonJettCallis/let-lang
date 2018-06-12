@@ -1,7 +1,6 @@
 package com.redgear.let.ast;
 
 import com.redgear.let.types.FunctionTypeToken;
-import com.redgear.let.types.TypeToken;
 import javaslang.collection.List;
 
 public class Lambda implements Expression {

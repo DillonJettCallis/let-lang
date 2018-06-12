@@ -31,12 +31,20 @@ public class TypeChecker {
         if (typeToken instanceof NamedTypeToken) {
             String name = typeToken.getName();
             return knownTypes.get(name);
-        } else if (typeToken instanceof FunctionTypeToken) {
-            var funcTypeToken = (FunctionTypeToken) typeToken;
-            return new FunctionTypeToken(funcTypeToken.getArgTypes().map(this::resolveTypeToken), resolveTypeToken(funcTypeToken.getResultType()));
+        } else if (typeToken instanceof OverloadedFunctionTypeToken) {
+            return new OverloadedFunctionTypeToken( ((OverloadedFunctionTypeToken) typeToken).getImplementations().map(this::resolveTypeToken));
+        } else if (typeToken instanceof GenericFunctionTypeToken) {
+            var funcTypeToken = (GenericFunctionTypeToken) typeToken;
+            return new GenericFunctionTypeToken(funcTypeToken.getTypeParameters(), funcTypeToken.getArgTypes().map(this::resolveTypeToken), resolveTypeToken(funcTypeToken.getResultType()));
+        } else if (typeToken instanceof SimpleFunctionTypeToken) {
+            return resolveTypeToken((SimpleFunctionTypeToken) typeToken);
         } else {
             return typeToken;
         }
+    }
+
+    private SimpleFunctionTypeToken resolveTypeToken(SimpleFunctionTypeToken funcTypeToken) {
+        return new SimpleFunctionTypeToken(funcTypeToken.getArgTypes().map(this::resolveTypeToken), resolveTypeToken(funcTypeToken.getResultType()));
     }
 
     private TypeToken sureType(TypeToken typeToken) {
@@ -58,17 +66,18 @@ public class TypeChecker {
         var argTypes = args.map(Expression::getTypeToken);
 
         if (funcType instanceof FunctionTypeToken) {
-            var funcTypeToken = (FunctionTypeToken) funcType;
+            var genTypeToken = (FunctionTypeToken) funcType;
+            var resultType = genTypeToken.getResultType(argTypes);
 
-            if (funcTypeToken.getArgTypes().equals(argTypes)) {
-                return new Call(ex.getLocation(), funcTypeToken.getResultType(), function, args);
+            if (resultType != null) {
+                return new Call(ex.getLocation(), resultType, function, args);
             } else {
-                var expected = funcTypeToken.getArgTypes().map(TypeToken::getName).mkString(", ");
+                var expected = genTypeToken.getName();
                 var actual = argTypes.map(TypeToken::getName).mkString(", ");
 
-                throw new RuntimeException("Attempt to call function with wrong types of arguments. Expected: (" + expected + "), found: (" + actual + "). " + ex.getLocation().print());
+                throw new RuntimeException("Attempt to call function with wrong types of arguments. Function type: " + expected + ", found args: (" + actual + "). " + ex.getLocation().print());
             }
-        } if (funcType instanceof DynamicFunctionTypeToken) {
+        } else if (funcType instanceof DynamicFunctionTypeToken) {
             var dynamicFunction = (DynamicFunctionTypeToken) funcType;
             var resultType = dynamicFunction.getResultType(argTypes);
 
@@ -79,7 +88,6 @@ public class TypeChecker {
             } else {
                 return new Call(ex.getLocation(), resultType, function, args);
             }
-
         } else {
             throw new RuntimeException("Attempt to call a non-function: " + ex.getLocation().print());
         }
@@ -118,20 +126,23 @@ public class TypeChecker {
     public Lambda visit(LocalTypeScope typeScope, Lambda ex) {
         var innerScope = new LocalTypeScope(typeScope);
 
+        var functionType = (SimpleFunctionTypeToken) resolveTypeToken(ex.getTypeToken());
+
         var args = ex.getVariables()
                 .map(arg -> arg.setTypeToken(resolveTypeToken(arg.getTypeToken())));
         args.forEach(arg -> innerScope.declareType(arg.getName(), sureType(arg.getTypeToken())));
 
+        // TODO: Allow and verify the body of Generic functions
         var body = ex.getStatements().map(e -> visit(innerScope, e));
         var bodyTypeToken = body.last().getTypeToken();
 
-        var resultType = resolveTypeToken(ex.getTypeToken().getResultType());
+        var resultType = functionType.getResultType();
 
-        if (bodyTypeToken != null && resultType != null && !resultType.equals(bodyTypeToken)) {
+        if (resultType != null && !resultType.equals(bodyTypeToken)) {
             throw new RuntimeException("Function declared type differs from returned type. Declared: " + ex.getTypeToken().getName() + ", returns: " + bodyTypeToken.getName() + " " + ex.getLocation().print());
         }
 
-        return new Lambda(ex.getLocation(), new FunctionTypeToken(args.map(Variable::getTypeToken), bodyTypeToken), args, body);
+        return new Lambda(ex.getLocation(), functionType.setResultType(bodyTypeToken), args, body);
     }
 
 

@@ -160,26 +160,22 @@ public class ListLibrary implements ModuleDefinition {
     public void buildTypes(TypeScope typeScope) {
         typeScope.declareType("build", new DynamicFunctionTypeToken("build", ListLibrary::buildList));
 
-        typeScope.declareType("get", new DynamicFunctionTypeToken("get", args -> {
-            if (args.size() == 2) {
-                var result = extractType(args);
-                var second = args.get(1);
+        var listItem = new ParamaterTypeToken("Item");
+        var listParams = List.of(listItem);
+        var listOfItem = LiteralTypeToken.listTypeToken.construct(List.of(listItem));
 
-                if (result != null && second == LiteralTypeToken.intTypeToken) {
-                    return result;
-                }
-            }
+        typeScope.declareType("get", new GenericFunctionTypeToken(listParams, List.of(listOfItem, LiteralTypeToken.intTypeToken), listItem));
 
-            return null;
-        }));
+        //TODO: Create Unit type
+//        typeScope.declareType("forEach", new GenericFunctionTypeToken(listParams, List.of(new GenericFunctionTypeToken(listParams, List.of(listItem), LiteralTypeToken.nullTypeToken)), LiteralTypeToken.nullTypeToken));
 
         typeScope.declareType("forEach", new DynamicFunctionTypeToken("forEach", args -> {
             if (args.size() == 2) {
                 var result = extractType(args);
                 var second = args.get(1);
 
-                if (result != null && second instanceof FunctionTypeToken) {
-                    var func = (FunctionTypeToken) second;
+                if (result != null && second instanceof SimpleFunctionTypeToken) {
+                    var func = (SimpleFunctionTypeToken) second;
 
                     if (func.getArgTypes().size() == 1 && func.getArgTypes().head().equals(result)) {
                         return LiteralTypeToken.nullTypeToken;
@@ -190,46 +186,16 @@ public class ListLibrary implements ModuleDefinition {
             return null;
         }));
 
-        typeScope.declareType("map", new DynamicFunctionTypeToken("map", args -> {
-            if (args.size() == 2) {
-                var result = extractType(args);
-                var second = args.get(1);
+        // {<Out, Item> List<Item>, {Item => Out} => List<Out>}
 
-                if (result != null && second instanceof FunctionTypeToken) {
-                    var func = (FunctionTypeToken) second;
+        var outItem = new ParamaterTypeToken("Out");
+        var mapperFunction = new GenericFunctionTypeToken(listParams.prepend(outItem), List.of(listItem), outItem);
+        var mapperResult = LiteralTypeToken.listTypeToken.construct(List.of(outItem));
 
-                    if (func.getArgTypes().size() == 1 && func.getArgTypes().head().equals(result)) {
-                        return LiteralTypeToken.listTypeToken.construct(List.of(func.getResultType()));
-                    }
-                }
-            }
+        typeScope.declareType("map", new GenericFunctionTypeToken(listParams.prepend(outItem), List.of(listOfItem, mapperFunction), mapperResult));
 
-            return null;
-        }));
-
-        typeScope.declareType("flatMap", new DynamicFunctionTypeToken("flatMap", args -> {
-            if (args.size() == 2) {
-                var result = extractType(args);
-                var second = args.get(1);
-
-                if (result != null && second instanceof FunctionTypeToken) {
-                    var func = (FunctionTypeToken) second;
-
-                    if (func.getArgTypes().size() == 1 && func.getArgTypes().head().equals(result)) {
-                        var resultList = func.getResultType();
-
-                        if (resultList instanceof GenericTypeToken) {
-                            var resultGeneric = (GenericTypeToken) resultList;
-
-                            if (resultGeneric.getTypeConstructor() == LiteralTypeToken.listTypeToken.getBase()) {
-                                return resultGeneric;
-                            }
-                        }
-                    }
-                }
-            }
-            return null;
-        }));
+        var flatMapperFunction = new GenericFunctionTypeToken(listParams.prepend(outItem), List.of(listItem), mapperResult);
+        typeScope.declareType("flatMap", new GenericFunctionTypeToken(listParams.prepend(outItem), List.of(listOfItem, flatMapperFunction), mapperResult));
 
         typeScope.declareType("fold", new DynamicFunctionTypeToken("fold", args -> {
             if (args.size() == 3) {
@@ -237,8 +203,8 @@ public class ListLibrary implements ModuleDefinition {
                 var second = args.get(1);
                 var third = args.get(2);
 
-                if (contentType != null && third instanceof FunctionTypeToken) {
-                    var func = (FunctionTypeToken) second;
+                if (contentType != null && third instanceof SimpleFunctionTypeToken) {
+                    var func = (SimpleFunctionTypeToken) second;
 
                     if (func.getArgTypes().size() == 2 && func.getArgTypes().head().equals(second) && func.getArgTypes().last().equals(contentType)) {
                         return second;
@@ -253,8 +219,8 @@ public class ListLibrary implements ModuleDefinition {
                 var contentType = extractType(args);
                 var second = args.get(1);
 
-                if (contentType != null && second instanceof FunctionTypeToken) {
-                    var func = (FunctionTypeToken) second;
+                if (contentType != null && second instanceof SimpleFunctionTypeToken) {
+                    var func = (SimpleFunctionTypeToken) second;
 
                     if (func.getArgTypes().size() == 2 && func.getArgTypes().head().equals(contentType) && func.getArgTypes().last().equals(contentType)) {
                         return contentType;

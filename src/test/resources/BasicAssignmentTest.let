@@ -9,6 +9,11 @@ import Core.String
 
 export fun sum(l: Int, r: Int): Int { l + r}
 
+fun productIntInt(l: Int, r: Int): Int { l * r }
+fun productIntFloat(l: Int, r: Float): Float { l * r }
+fun productFloatInt(l: Float, r: Int): Float { l * r }
+fun productFloatFloat(l: Float, r: Float): Float { l * r }
+
 fun pi(): Float { 3.14 }
 
 export fun main(): Unit {
@@ -16,7 +21,7 @@ export fun main(): Unit {
 
     let y=7+x
 
-    let result = ('The result is: ' + y)
+    let result = ('The result is: ' + String.toString(y))
 
     let check = x == 12
 
@@ -25,8 +30,6 @@ export fun main(): Unit {
     } else {
       'fail'
     }
-
-#    print(varThatDoesNotExist)
 
 
     let num = sum(6, 4)
@@ -41,7 +44,7 @@ export fun main(): Unit {
 
 
 #    let mul = recurse(3, 4, 0)
-    let mul = {num: Int, times: Int => num * times}
+    let mul = 3 * 4
 
     let complexTest = if (mul == 10) || (num == 10) {
         'pass'
@@ -86,13 +89,6 @@ export fun main(): Unit {
     let sumResult = sum(5, 3)
 
 
-#    let divideResult = if true {
-#     OtherLib
-#    } else {
-#     SomeLib
-#    }.divide(12, 3)
-
-
     let firstMap = ["key" -> "value", "23" -> "42"]
 
 
@@ -120,8 +116,6 @@ export fun main(): Unit {
     let product = nums | {i: Int => i + 1}  |& SomeLib.multiply
 
     let flat = [1, 2, 3] |/ {i: Int => [i, i]} |& sum :: print()
-
-    let r = flat + 1
 
     let listOfWords = 'This is a test'::String.split(' ') | { next: String =>
         print(next, ' ', next::String.size())
