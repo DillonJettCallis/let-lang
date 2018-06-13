@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class LibraryScope implements Scope {
 
-    private Map<String, Object> values = new HashMap<>();
+    private final Map<String, Object> values = new HashMap<>();
 
     @Override
     public Object getValue(String id) {
@@ -21,6 +21,17 @@ public class LibraryScope implements Scope {
     public LibraryScope getLibraryScope() {
         return this;
     }
+
+    @Override
+    public ModuleScope importModule(String module) {
+        return null;
+    }
+
+    @Override
+    public void declareImport(String alias, ModuleScope moduleScope) {
+
+    }
+
 
     @Override
     public void exportValue(String id, Object value) {

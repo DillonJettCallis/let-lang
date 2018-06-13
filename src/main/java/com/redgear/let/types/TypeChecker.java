@@ -2,6 +2,7 @@ package com.redgear.let.types;
 
 import com.redgear.let.ast.*;
 import com.redgear.let.ast.Module;
+import com.redgear.let.lib.ModuleDefinition;
 import com.redgear.let.load.Loader;
 
 import java.util.HashMap;
@@ -11,26 +12,40 @@ import static javaslang.API.Case;
 import static javaslang.API.Match;
 import static javaslang.Predicates.instanceOf;
 
-public class TypeChecker {
+public class TypeChecker implements Loader {
 
-    private final Map<String, TypeToken> knownTypes = new HashMap<>();
-    private final Map<String, ModuleTypeScope> knownModules = new HashMap<>();
+    private final Map<String, ModuleTypeScope> importedModules = new HashMap<>();
     private final LibraryTypeScope typeScope;
     private final Loader loader;
 
     public TypeChecker(LibraryTypeScope typeScope, Loader loader) {
         this.typeScope = typeScope;
         this.loader = loader;
-        this.knownModules.putAll(typeScope.getCoreModules());
-        this.knownTypes.put("String", LiteralTypeToken.stringTypeToken);
-        this.knownTypes.put("Int", LiteralTypeToken.intTypeToken);
-        this.knownTypes.put("Float", LiteralTypeToken.floatTypeToken);
+    }
+
+    @Override
+    public Module loadModule(String name) {
+        var module = loader.loadModule(name);
+        var moduleScope = new ModuleTypeScope(typeScope);
+        var localScope = new LocalTypeScope(moduleScope);
+
+        var body = module.getExpressions().map(ex -> visit(localScope, ex));
+
+        importedModules.put(name, moduleScope);
+
+        return new Module(module.getLocation(), body);
+    }
+
+    public void loadLibModule(ModuleDefinition moduleDefinition) {
+        var moduleScope = new ModuleTypeScope(typeScope);
+        moduleDefinition.buildTypes(moduleScope);
+        importedModules.put(moduleDefinition.getName(), moduleScope);
     }
 
     private TypeToken resolveTypeToken(TypeToken typeToken) {
         if (typeToken instanceof NamedTypeToken) {
             String name = typeToken.getName();
-            return knownTypes.get(name);
+            return typeScope.getType(name);
         } else if (typeToken instanceof OverloadedFunctionTypeToken) {
             return new OverloadedFunctionTypeToken( ((OverloadedFunctionTypeToken) typeToken).getImplementations().map(this::resolveTypeToken));
         } else if (typeToken instanceof GenericFunctionTypeToken) {
@@ -51,7 +66,7 @@ public class TypeChecker {
         return typeToken == null ? LiteralTypeToken.nullTypeToken : typeToken;
     }
 
-    public Assignment visit(LocalTypeScope typeScope, Assignment ex) {
+    private Assignment visit(LocalTypeScope typeScope, Assignment ex) {
         var body = visit(typeScope, ex.getBody());
         var sureType = sureType(body.getTypeToken());
         typeScope.declareType(ex.getVar().getName(), sureType);
@@ -59,7 +74,7 @@ public class TypeChecker {
     }
 
 
-    public Call visit(LocalTypeScope typeScope, Call ex) {
+    private Call visit(LocalTypeScope typeScope, Call ex) {
         var function = visit(typeScope, ex.getMethod());
         var funcType = function.getTypeToken();
         var args = ex.getArguments().map(e -> visit(typeScope, e));
@@ -93,37 +108,35 @@ public class TypeChecker {
         }
     }
 
-    public Export visit(LocalTypeScope typeScope, Export ex) {
+    private Export visit(LocalTypeScope typeScope, Export ex) {
         var body = visit(typeScope, ex.getExpression());
         typeScope.exportType(ex.getName(), body.getTypeToken());
         return ex.setBody(body);
     }
 
 
-    public Import visit(LocalTypeScope typeScope, Import ex) {
+    private Import visit(LocalTypeScope typeScope, Import ex) {
         var maybeModule = typeScope.importModule(ex.getAlias());
 
         if (maybeModule == null) {
-            var module = loadModule(ex.getPath());
-            typeScope.declareImport(ex.getAlias(), module);
+            if (importedModules.containsKey(ex.getPath())) {
+                typeScope.declareImport(ex.getAlias(), importedModules.get(ex.getPath()));
+            } else {
+                var maybeAgain = loadModule(ex.getPath());
+                if (maybeAgain != null) {
+                    typeScope.declareImport(ex.getAlias(), importedModules.get(ex.getPath()));
+                } else {
+                    throw new RuntimeException("Cannot find module: " + ex.getPath() + " " + ex.getLocation().print());
+                }
+            }
+        } else {
+            throw new RuntimeException("Redundant import of module " + ex.getPath() + " " + ex.getLocation().print());
         }
 
         return ex;
     }
 
-    private ModuleTypeScope loadModule(String name){
-        if (this.knownModules.containsKey(name)) {
-            return this.knownModules.get(name);
-        } else {
-            var module = loader.loadModule(name);
-            var scope = visit(module);
-            this.knownModules.put(name, scope);
-            return scope;
-        }
-    }
-
-
-    public Lambda visit(LocalTypeScope typeScope, Lambda ex) {
+    private Lambda visit(LocalTypeScope typeScope, Lambda ex) {
         var innerScope = new LocalTypeScope(typeScope);
 
         var functionType = (SimpleFunctionTypeToken) resolveTypeToken(ex.getTypeToken());
@@ -146,21 +159,11 @@ public class TypeChecker {
     }
 
 
-    public Literal visit(LocalTypeScope typeScope, Literal ex) {
+    private Literal visit(LocalTypeScope typeScope, Literal ex) {
         return ex;
     }
 
-
-    public ModuleTypeScope visit(Module module) {
-        var moduleScope = new ModuleTypeScope(typeScope);
-        var localScope = new LocalTypeScope(moduleScope);
-
-        module.getExpressions().forEach(ex -> visit(localScope, ex));
-
-        return moduleScope;
-    }
-
-    public ModuleAccess visit(LocalTypeScope typeScope, ModuleAccess ex) {
+    private ModuleAccess visit(LocalTypeScope typeScope, ModuleAccess ex) {
         var moduleScope = typeScope.importModule(ex.getModule());
 
         if (moduleScope != null) {
@@ -177,13 +180,13 @@ public class TypeChecker {
     }
 
 
-    public Parenthesized visit(LocalTypeScope typeScope, Parenthesized ex) {
+    private Parenthesized visit(LocalTypeScope typeScope, Parenthesized ex) {
         var body = ex.getExpressions().map(e -> visit(typeScope, e));
         return new Parenthesized(ex.getLocation(), body.last().getTypeToken(), body);
     }
 
 
-    public Variable visit(LocalTypeScope typeScope, Variable ex) {
+    private Variable visit(LocalTypeScope typeScope, Variable ex) {
         var typeToken = typeScope.getType(ex.getName());
         if (typeToken == null) {
             throw new RuntimeException("Attempt to use undeclared variable: " + ex.getName() + " " + ex.getLocation().print());
@@ -192,7 +195,39 @@ public class TypeChecker {
         return ex.setTypeToken(typeToken);
     }
 
-    public Expression visit(LocalTypeScope typeScope, Expression expression) {
+    private Branch visit(LocalTypeScope typeScope, Branch ex) {
+        var condition = visit(typeScope, ex.getCondition());
+
+        if (!LiteralTypeToken.booleanTypeToken.equals(condition.getTypeToken())) {
+            throw new RuntimeException("Required boolean expression, found: " + condition.getTypeToken().getName() + " " + ex.getLocation().print());
+        }
+
+        var thenScope = new LocalTypeScope(typeScope);
+        var thenBlock = visit(thenScope, ex.getThenBlock());
+
+        var elseScope = new LocalTypeScope(typeScope);
+        var elseBlock = visit(elseScope, ex.getElseBlock());
+
+        if (ex.getTypeToken() == null) {
+            if (!thenBlock.getTypeToken().equals(elseBlock.getTypeToken())) {
+                throw new RuntimeException("If statement then and else block return different types. then: " + thenBlock.getTypeToken().getName() + ", else: " + elseBlock.getTypeToken().getName() + " " + ex.getLocation().print());
+            } else {
+                return new Branch(ex.getLocation(), thenBlock.getTypeToken(), condition, thenBlock, elseBlock);
+            }
+        } else {
+            if (!LiteralTypeToken.booleanTypeToken.equals(thenBlock.getTypeToken())) {
+                throw new RuntimeException("Required boolean expression, found: " + condition.getTypeToken().getName() + " " + thenBlock.getLocation().print());
+            }
+
+            if (!LiteralTypeToken.booleanTypeToken.equals(elseBlock.getTypeToken())) {
+                throw new RuntimeException("Required boolean expression, found: " + condition.getTypeToken().getName() + " " + elseBlock.getLocation().print());
+            }
+
+            return new Branch(ex.getLocation(), ex.getTypeToken(), condition, thenBlock, elseBlock);
+        }
+    }
+
+    private Expression visit(LocalTypeScope typeScope, Expression expression) {
         return Match(expression).of(
                 Case(instanceOf(Assignment.class), ex -> visit(typeScope, ex)),
                 Case(instanceOf(Call.class), ex -> visit(typeScope, ex)),
@@ -202,6 +237,7 @@ public class TypeChecker {
                 Case(instanceOf(Literal.class), ex -> visit(typeScope, ex)),
                 Case(instanceOf(Parenthesized.class), ex -> visit(typeScope, ex)),
                 Case(instanceOf(Variable.class), ex -> visit(typeScope, ex)),
+                Case(instanceOf(Branch.class), ex -> visit(typeScope, ex)),
                 Case(instanceOf(ModuleAccess.class), ex -> visit(typeScope, ex))
         );
     }

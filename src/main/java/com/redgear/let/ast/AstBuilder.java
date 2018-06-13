@@ -153,6 +153,24 @@ public class AstBuilder {
         return new Call(opLocation, null, opExpression, List.of(left, right));
     }
 
+    private Branch build(BinaryAndOpExpressionContext context) {
+        Location opLocation = new Location(context.op);
+
+        Expression left  = build(context.expression(0));
+        Expression right = build(context.expression(1));
+
+        return new Branch(opLocation, LiteralTypeToken.booleanTypeToken, left, right, new Literal(opLocation, false));
+    }
+
+    private Branch build(BinaryOrOpExpressionContext context) {
+        Location opLocation = new Location(context.op);
+
+        Expression left  = build(context.expression(0));
+        Expression right = build(context.expression(1));
+
+        return new Branch(opLocation, LiteralTypeToken.booleanTypeToken, left, new Literal(opLocation, true), right);
+    }
+
     private Parenthesized build(ParenthesizedExpressionContext context) {
         List<Expression> expressions = List.ofAll(context.expression()).map(this::build);
 
@@ -195,13 +213,13 @@ public class AstBuilder {
         return new Call(location, null, new Variable(location, null, "$buildList"), expressions);
     }
 
-    private Call build(IfExpressionContext context) {
+    private Branch build(IfExpressionContext context) {
         Location location = new Location(context.getStart());
         Expression condition = build(context.condition);
         List<Expression> thenExs = List.ofAll(context.thenExpressions).map(this::build);
         List<Expression> elseExs = List.ofAll(context.elseExpressions).map(this::build);
 
-        return new Call(location, null, new Variable(location, null, "if"), List.of(condition, new Parenthesized(new Location(context.getStart()), null, thenExs), new Parenthesized(new Location(context.getStart()), null, elseExs)));
+        return new Branch(location, null, condition, new Parenthesized(new Location(context.getStart()), null, thenExs), new Parenthesized(new Location(context.getStart()), null, elseExs));
     }
 
     private Call build(ForExpressionContext context) {
@@ -232,6 +250,8 @@ public class AstBuilder {
                 Case(instanceOf(UnaryOpExpressionContext.class), this::build),
                 Case(instanceOf(UnaryNegOpExpressionContext.class), this::build),
                 Case(instanceOf(BinaryOpExpressionContext.class), this::build),
+                Case(instanceOf(BinaryAndOpExpressionContext.class), this::build),
+                Case(instanceOf(BinaryOrOpExpressionContext.class), this::build),
                 Case(instanceOf(ParenthesizedExpressionContext.class), this::build),
                 Case(instanceOf(LocalIdentifierExpressionContext.class), this::build),
                 Case(instanceOf(IntLiteralExpressionContext.class), this::build),

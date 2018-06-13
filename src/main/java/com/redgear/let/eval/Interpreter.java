@@ -1,21 +1,14 @@
 package com.redgear.let.eval;
 
-import com.redgear.let.antlr.LetLexer;
-import com.redgear.let.antlr.LetParser;
 import com.redgear.let.ast.*;
 import com.redgear.let.ast.Module;
-import com.redgear.let.lib.*;
+import com.redgear.let.lib.ModuleDefinition;
+import com.redgear.let.load.Loader;
+import com.redgear.let.types.ModuleTypeScope;
 import javaslang.collection.List;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,35 +21,15 @@ public class Interpreter {
     private static final Logger log = LoggerFactory.getLogger(Interpreter.class);
 
     private final LibraryScope libraryScope;
-    private final Path srcPath;
     private final Map<String, ModuleScope> modules = new HashMap<>();
-    private final Map<String, ModuleScope> libraryModules = new HashMap<>();
     private final Caller caller;
+    private final Loader loader;
 
-    public Interpreter(String modulePath) {
-        this.srcPath = Paths.get(modulePath).toAbsolutePath();
-        this.libraryScope = new LibraryScope();
+    public Interpreter(LibraryScope libraryScope, Loader loader) {
+        this.libraryScope = libraryScope;
+        this.loader = loader;
         this.caller = new Caller(this);
-        new CoreLibrary().buildLibrary(this, libraryScope);
-
-        addLibModule(new MapLibrary());
-        addLibModule(new ListLibrary());
-        addLibModule(new StringLibrary());
     }
-
-    private void addLibModule(ModuleDefinition definition) {
-        String name = definition.getName();
-        ModuleScope moduleScope = new ModuleScope(libraryScope);
-
-        definition.buildLibrary(this, moduleScope);
-
-        libraryModules.put(name, moduleScope);
-    }
-
-    private String resolveModule(String relativeModule) {
-        return srcPath.resolve(relativeModule.replace(".", "/") + ".let").toAbsolutePath().toString();
-    }
-
     public void run(String mainModule) {
         var scope = loadModule(mainModule);
 
@@ -70,38 +43,36 @@ public class Interpreter {
     }
 
     public ModuleScope loadModule(String fileName) {
-        if (libraryModules.containsKey(fileName)) {
-            return libraryModules.get(fileName);
-        }
-
         if (modules.containsKey(fileName)) {
             return modules.get(fileName);
         } else {
-            ModuleScope module = loadModuleReal(resolveModule(fileName));
-            modules.put(fileName, module);
-            return module;
+            Module module = loader.loadModule(fileName);
+            var moduleScope = new ModuleScope(libraryScope);
+            eval(new LocalScope(moduleScope), module);
+            modules.put(fileName, moduleScope);
+            return moduleScope;
         }
     }
 
-    private ModuleScope loadModuleReal(String filePath) {
-        try {
-            CharStream fileStream = CharStreams.fromFileName(filePath, Charset.forName("UTF-8"));
+    public void loadLibModule(ModuleDefinition moduleDefinition) {
+        var moduleScope = new ModuleScope(libraryScope);
+        moduleDefinition.buildLibrary(this, moduleScope);
+        modules.put(moduleDefinition.getName(), moduleScope);
+    }
 
-            LetLexer lexer = new LetLexer(fileStream);
+    private Object eval(LocalScope scope, ModuleAccess ex) {
+        var module = scope.importModule(ex.getModule());
 
-            CommonTokenStream tokens = new CommonTokenStream(lexer);
+        if (module != null) {
+            var value = module.getValue(ex.getAccess());
 
-            LetParser parser = new LetParser(tokens);
-
-            LetParser.ModuleContext context = parser.module();
-
-            AstBuilder builder = new AstBuilder();
-
-            Module module = builder.build(context);
-
-            return (ModuleScope) eval(new LocalScope(libraryScope), module);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to import module: " + filePath, e);
+            if (value == null) {
+                throw new RuntimeException("Function " + ex.getModule() + "." + ex.getAccess() + " is not defined. " + ex.getLocation().print());
+            } else {
+                return value;
+            }
+        } else {
+            throw new RuntimeException("Module " + ex.getModule() + " was not found. " + ex.getLocation().print());
         }
     }
 
@@ -137,7 +108,7 @@ public class Interpreter {
     private Object eval(LocalScope scope, Import expression) {
         ModuleScope importScope = loadModule(expression.getPath());
 
-        scope.putValue(expression.getAlias(), importScope);
+        scope.declareImport(expression.getAlias(), importScope);
 
         return importScope;
     }
@@ -158,13 +129,8 @@ public class Interpreter {
         return expression.getValue();
     }
 
-    private Object eval(LocalScope scope, Module expression) {
-        ModuleScope moduleScope = new ModuleScope(scope.getLibraryScope());
-        LocalScope newLocal = new LocalScope(moduleScope);
-
-        expression.getExpressions().forEach(ex -> eval(newLocal, ex));
-
-        return moduleScope;
+    private void eval(LocalScope scope, Module expression) {
+        expression.getExpressions().forEach(ex -> eval(scope, ex));
     }
 
     private Object eval(LocalScope scope, Parenthesized expression) {
@@ -177,6 +143,23 @@ public class Interpreter {
         return scope.getValue(expression.getName());
     }
 
+    private Object eval(LocalScope scope, Branch expression) {
+        var condition = eval(scope, expression.getCondition());
+
+        if (condition instanceof Boolean) {
+            boolean cond = (Boolean) condition;
+            var blockScope = new LocalScope(scope);
+
+            if (cond) {
+                return eval(blockScope, expression.getThenBlock());
+            } else {
+                return eval(blockScope, expression.getElseBlock());
+            }
+        } else {
+            throw new RuntimeException("Type error. Expected boolean but found: " + (condition == null ? "null" : condition.getClass()) + " " + expression.getCondition().getLocation());
+        }
+    }
+
     public Object eval(LocalScope scope, Expression expression) {
         return Match(expression).of(
                 Case(instanceOf(Assignment.class), ex -> eval(scope, ex)),
@@ -185,9 +168,10 @@ public class Interpreter {
                 Case(instanceOf(Import.class), ex -> eval(scope, ex)),
                 Case(instanceOf(Lambda.class), ex -> eval(scope, ex)),
                 Case(instanceOf(Literal.class), this::eval),
-                Case(instanceOf(Module.class), ex -> eval(scope, ex)),
                 Case(instanceOf(Parenthesized.class), ex -> eval(scope, ex)),
-                Case(instanceOf(Variable.class), ex -> eval(scope, ex))
+                Case(instanceOf(Variable.class), ex -> eval(scope, ex)),
+                Case(instanceOf(Branch.class), ex -> eval(scope, ex)),
+                Case(instanceOf(ModuleAccess.class), ex -> eval(scope, ex))
         );
     }
 }

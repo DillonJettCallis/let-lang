@@ -5,12 +5,12 @@ import java.util.Map;
 
 public class LocalScope implements Scope {
 
-    private final Scope local;
+    private final Scope parent;
     private Map<String, Object> values = new HashMap<>();
 
-    public LocalScope(Scope local) {
-        this.local = local;
-        values.put("local", "local");
+    public LocalScope(Scope parent) {
+        this.parent = parent;
+        values.put("parent", "parent");
     }
 
     @Override
@@ -18,7 +18,7 @@ public class LocalScope implements Scope {
         if(values.containsKey(id)) {
             return values.get(id);
         } else {
-            return local.getValue(id);
+            return parent.getValue(id);
         }
     }
 
@@ -33,11 +33,19 @@ public class LocalScope implements Scope {
 
     @Override
     public LibraryScope getLibraryScope() {
-        return local.getLibraryScope();
+        return parent.getLibraryScope();
+    }
+
+    public ModuleScope importModule(String module) {
+        return parent.importModule(module);
+    }
+
+    public void declareImport(String alias, ModuleScope moduleScope) {
+        parent.declareImport(alias, moduleScope);
     }
 
     public void exportValue(String id, Object value) {
-        local.exportValue(id, value);
+        parent.exportValue(id, value);
     }
 
 }

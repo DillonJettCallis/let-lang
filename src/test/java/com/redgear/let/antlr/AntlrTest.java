@@ -4,7 +4,12 @@ import com.redgear.let.AstPrinter;
 import com.redgear.let.ast.Module;
 import com.redgear.let.compile2js.Compiler2js;
 import com.redgear.let.eval.Interpreter;
-import com.redgear.let.load.Loader;
+import com.redgear.let.eval.LibraryScope;
+import com.redgear.let.lib.CoreLibrary;
+import com.redgear.let.lib.ListLibrary;
+import com.redgear.let.lib.MapLibrary;
+import com.redgear.let.lib.StringLibrary;
+import com.redgear.let.load.FileLoader;
 import com.redgear.let.types.LibraryTypeScope;
 import com.redgear.let.types.TypeChecker;
 import org.junit.jupiter.api.Test;
@@ -23,7 +28,49 @@ class AntlrTest {
 
     @Test
     void basicInterpreterTest() {
-        new Interpreter("src/test/resources/").run("BasicAssignmentTest");
+        var loader = new FileLoader(Paths.get("src/test/resources/"));
+
+        var libTypeScope = new LibraryTypeScope();
+        var typeChecker = new TypeChecker(libTypeScope, loader);
+
+        var libScope = new LibraryScope();
+        var interpreter = new Interpreter(libScope, typeChecker);
+
+
+        var coreLib = new CoreLibrary();
+        coreLib.buildTypes(libTypeScope);
+        coreLib.buildLibrary(interpreter, libScope);
+
+        var listLib = new ListLibrary();
+        typeChecker.loadLibModule(listLib);
+        interpreter.loadLibModule(listLib);
+
+        var mapLib = new MapLibrary();
+        typeChecker.loadLibModule(mapLib);
+        interpreter.loadLibModule(mapLib);
+
+        var stringLib = new StringLibrary();
+        typeChecker.loadLibModule(stringLib);
+        interpreter.loadLibModule(stringLib);
+
+
+        interpreter.run("BasicAssignmentTest");
+    }
+
+    @Test
+    void dynamicInterpreterTest() {
+        var loader = new FileLoader(Paths.get("src/test/resources/"));
+
+        var libScope = new LibraryScope();
+        var interpreter = new Interpreter(libScope, loader);
+
+        var coreLib = new CoreLibrary();
+        coreLib.buildLibrary(interpreter, libScope);
+        interpreter.loadLibModule(new ListLibrary());
+        interpreter.loadLibModule(new MapLibrary());
+        interpreter.loadLibModule(new StringLibrary());
+
+        interpreter.run("BasicAssignmentTest");
     }
 
     @Test
@@ -39,7 +86,7 @@ class AntlrTest {
 
         try (var writer = new FileWriter(path.toString());
              var buffered = new BufferedWriter(writer)) {
-            var loader = new Loader(Paths.get("src/test/resources"));
+            var loader = new FileLoader(Paths.get("src/test/resources"));
             Module module = loader.loadModule("BasicAssignmentTest");
 
             var printer = new AstPrinter(buffered);
@@ -50,14 +97,17 @@ class AntlrTest {
 
     @Test
     void basicTypeCheckerTest() {
-        var loader = new Loader(Paths.get("src/test/resources"));
-        Module module = loader.loadModule("BasicAssignmentTest");
+        var loader = new FileLoader(Paths.get("src/test/resources/"));
 
-        var libraryScope = new LibraryTypeScope();
-        var typeChecker = new TypeChecker(libraryScope, loader);
-        var types = typeChecker.visit(module);
+        var libTypeScope = new LibraryTypeScope();
+        var typeChecker = new TypeChecker(libTypeScope, loader);
 
-        log.debug("TypeChecker output: {}", types);
+        new CoreLibrary().buildTypes(libTypeScope);
+        typeChecker.loadLibModule(new ListLibrary());
+        typeChecker.loadLibModule(new MapLibrary());
+        typeChecker.loadLibModule(new StringLibrary());
+
+        typeChecker.loadModule("BasicAssignmentTest");
     }
 
 }

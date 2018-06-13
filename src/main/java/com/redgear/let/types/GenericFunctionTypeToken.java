@@ -157,6 +157,7 @@ public class GenericFunctionTypeToken implements FunctionTypeToken {
             } else {
                 throw new RuntimeException("Non-matching type parameters");
             }
+        } else if (LiteralTypeToken.unitTypeToken.equals(template)) {
         } else if (given instanceof SimpleFunctionTypeToken && template instanceof SimpleFunctionTypeToken) {
             var functionGiven = (SimpleFunctionTypeToken) given;
             var functionTemplate = (SimpleFunctionTypeToken) template;

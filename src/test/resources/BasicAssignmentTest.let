@@ -89,7 +89,7 @@ export fun main(): Unit {
     let sumResult = sum(5, 3)
 
 
-    let firstMap = ["key" -> "value", "23" -> "42"]
+    let firstMap = ["key" -> 42, "otherKey" -> 23]
 
 
 
@@ -124,6 +124,9 @@ export fun main(): Unit {
     #let listOfWords = for (next in 'This is a test'::String.split(' ')) {
     #    print(next, ' ', next::String.size())
     #}
+
+    let foldResult = List.fold([1, 2, 3], '', {s: String, i: Int => s + String.toString(i) })
+    let reduceResult = List.reduce([1, 2, 3], {a: Int, b: Int => a + b})
 
 
 }

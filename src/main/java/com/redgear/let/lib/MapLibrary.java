@@ -41,49 +41,13 @@ public class MapLibrary implements ModuleDefinition {
     public void buildTypes(TypeScope typeScope) {
         typeScope.declareType("build", new DynamicFunctionTypeToken("build", MapLibrary::buildMap));
 
-        typeScope.declareType("get", new DynamicFunctionTypeToken("get", args -> {
-            if (args.size() == 2) {
-                var rawMap = args.head();
-                var key = args.get(1);
+        var keyType = new ParamaterTypeToken("Key");
+        var valueType = new ParamaterTypeToken("Value");
+        var inputMap = LiteralTypeToken.mapTypeToken.construct(List.of(keyType, valueType));
 
-                var keyType = extractKey(rawMap);
-                var valueType = extractValue(rawMap);
+        var baseParams = List.of(keyType, valueType);
 
-                if (key.equals(keyType)) {
-                    return valueType;
-                }
-            }
-
-            return null;
-        }));
-    }
-
-    public TypeToken extractKey(TypeToken token) {
-        return extractType(token, 0);
-    }
-
-    public TypeToken extractValue(TypeToken token) {
-        return extractType(token, 1);
-    }
-
-    public TypeToken extractType(TypeToken token, int index) {
-        if (token instanceof GenericTypeToken) {
-            var gen = (GenericTypeToken) token;
-
-            if (gen.getTypeConstructor().equals(LiteralTypeToken.mapTypeToken.getBase())) {
-                var params = gen.getTypeParams();
-
-                if (params.size() == 2) {
-                    return params.get(index);
-                } else {
-                    return null;
-                }
-            } else {
-                return null;
-            }
-        } else {
-            return null;
-        }
+        typeScope.declareType("get", new GenericFunctionTypeToken(baseParams, List.of(inputMap, keyType), valueType));
     }
 
     static TypeToken buildMap(List<TypeToken> args) {

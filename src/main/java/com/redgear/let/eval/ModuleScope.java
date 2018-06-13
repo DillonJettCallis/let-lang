@@ -6,7 +6,8 @@ import java.util.Map;
 public class ModuleScope implements Scope {
 
     private final LibraryScope scope;
-    private Map<String, Object> values = new HashMap<>();
+    private final Map<String, ModuleScope> delaredImports = new HashMap<>();
+    private final Map<String, Object> values = new HashMap<>();
 
     public ModuleScope(LibraryScope scope) {
         this.scope = scope;
@@ -33,6 +34,14 @@ public class ModuleScope implements Scope {
     @Override
     public LibraryScope getLibraryScope() {
         return scope;
+    }
+
+    public ModuleScope importModule(String module) {
+        return delaredImports.get(module);
+    }
+
+    public void declareImport(String alias, ModuleScope moduleScope) {
+        delaredImports.put(alias, moduleScope);
     }
 
     @Override

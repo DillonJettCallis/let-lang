@@ -11,6 +11,7 @@ public class LiteralTypeToken implements TypeToken {
     public static final LiteralTypeToken floatTypeToken = new LiteralTypeToken("Float");
     public static final LiteralTypeToken booleanTypeToken = new LiteralTypeToken("Boolean");
     public static final LiteralTypeToken nullTypeToken = new LiteralTypeToken("null");
+    public static final LiteralTypeToken unitTypeToken = new LiteralTypeToken("Unit");
     public static final TypeConstructorTypeToken listTypeToken = new TypeConstructorTypeToken(new LiteralTypeToken("List"), 1);
     public static final TypeConstructorTypeToken mapTypeToken = new TypeConstructorTypeToken(new LiteralTypeToken("Map"), 2);
 

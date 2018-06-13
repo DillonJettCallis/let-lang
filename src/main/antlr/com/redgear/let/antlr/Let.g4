@@ -23,7 +23,7 @@ portIn
 expression
  : Let LocalIdentifier '=' expression ';'? # AssignmentExpression
  | 'if' condition=expression '{' thenExpressions+=expression '}' ('else' '{' elseExpressions+=expression '}')? # IfExpression
- | 'for' '(' local=LocalIdentifier 'in' collection=expression ')' '{' body=expression+ '}' # ForExpression
+ | 'for' '(' parent=LocalIdentifier 'in' collection=expression ')' '{' body=expression+ '}' # ForExpression
  | '{' (LocalIdentifier ':' argTypes+=typeExpression (',' LocalIdentifier ':' argTypes+=typeExpression)* )? '=>' expression+ '}' # FunctionExpression
  | ModuleIdentifier '.' LocalIdentifier  # ModuleAccessExpression
  | expression op=('|' | '|?' | '|/' | '|!' | '|&') expression # BinaryOpExpression
@@ -36,8 +36,8 @@ expression
  | expression op=('+' | '-') expression # BinaryOpExpression
  | expression op=('<' | '>' | '>=' | '=<') expression # BinaryOpExpression
  | expression op=('==' | '!=') expression # BinaryOpExpression
- | expression op='&&' expression # BinaryOpExpression
- | expression op='||' expression # BinaryOpExpression
+ | expression op='&&' expression # BinaryAndOpExpression
+ | expression op='||' expression # BinaryOrOpExpression
  | LocalIdentifier # LocalIdentifierExpression
  | IntLiteral # IntLiteralExpression
  | FloatLiteral # FloatLiteralExpression

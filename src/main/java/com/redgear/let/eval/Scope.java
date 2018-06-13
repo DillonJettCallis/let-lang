@@ -8,6 +8,10 @@ public interface Scope {
 
     LibraryScope getLibraryScope();
 
+    ModuleScope importModule(String module);
+
+    void declareImport(String alias, ModuleScope moduleScope);
+
     void exportValue(String id, Object value);
 
     default void putFunc(String name, LibFunc func) {
