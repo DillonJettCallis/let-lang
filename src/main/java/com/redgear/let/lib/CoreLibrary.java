@@ -249,6 +249,8 @@ public class CoreLibrary implements ModuleDefinition {
 
             return output;
         });
+
+        libraryScope.putFunc("&", (scope, args) -> args.mkString());
     }
 
     public void buildTypes(TypeScope typeScope) {
@@ -256,6 +258,10 @@ public class CoreLibrary implements ModuleDefinition {
         typeScope.declareType("true", LiteralTypeToken.booleanTypeToken);
         typeScope.declareType("false", LiteralTypeToken.booleanTypeToken);
         typeScope.declareType("print", new SimpleFunctionTypeToken(List.of(LiteralTypeToken.stringTypeToken), LiteralTypeToken.unitTypeToken));
+
+        var leftOpType = new ParamaterTypeToken("Left");
+        var rightOpType = new ParamaterTypeToken("Right");
+        typeScope.declareType("&", new GenericFunctionTypeToken(List.of(leftOpType, rightOpType), List.of(leftOpType, rightOpType), LiteralTypeToken.stringTypeToken));
 
         var opIntInt = new SimpleFunctionTypeToken(List.of(LiteralTypeToken.intTypeToken, LiteralTypeToken.intTypeToken), LiteralTypeToken.intTypeToken);
         var opIntFloat = new SimpleFunctionTypeToken(List.of(LiteralTypeToken.intTypeToken, LiteralTypeToken.floatTypeToken), LiteralTypeToken.floatTypeToken);

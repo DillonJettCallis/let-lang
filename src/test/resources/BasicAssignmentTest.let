@@ -21,7 +21,7 @@ export fun main(): Unit {
 
     let y=7+x
 
-    let result = ('The result is: ' + String.toString(y))
+    let result = ('The result is: ' & y)
 
     let check = x == 12
 
@@ -61,7 +61,7 @@ export fun main(): Unit {
 
     let higher = op(2, double)
 
-    print('This is a test: ' + String.toString(higher))
+    print('This is a test: ' & higher)
 
     let cons = 1
 
@@ -102,7 +102,7 @@ export fun main(): Unit {
 
     let third = nums::List.get(2)
 
-    [1, 2, 3, 4, 5] | { n: Int => n ** 2} |! { num: Int => print(String.toString(num)) }
+    [1, 2, 3, 4, 5] | { n: Int => n ** 2} |! { num: Int => print('' & num) }
 
     print(if 2 > 4 { "a" } else { "b" })
 
@@ -118,14 +118,14 @@ export fun main(): Unit {
     let flat = [1, 2, 3] |/ {i: Int => [i, i]} |& sum :: String.toString() :: print()
 
     let listOfWords = 'This is a test'::String.split(' ') | { next: String =>
-        print(next + ' ' + String.toString(next::String.size()))
+        print(next & ' ' & next::String.size())
     }
 
     #let listOfWords = for (next in 'This is a test'::String.split(' ')) {
     #    print(next, ' ', next::String.size())
     #}
 
-    let foldResult = List.fold([1, 2, 3], '', {s: String, i: Int => s + String.toString(i) })
+    let foldResult = List.fold([1, 2, 3], '', {s: String, i: Int => s & i})
     let reduceResult = List.reduce([1, 2, 3], {a: Int, b: Int => a + b})
 
     let pair = (3, 4)
