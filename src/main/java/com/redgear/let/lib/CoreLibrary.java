@@ -27,9 +27,7 @@ public class CoreLibrary implements ModuleDefinition {
             Object left = args.get(0);
             Object right = args.get(1);
 
-            if(left instanceof String || right instanceof String) {
-                return String.valueOf(left) + String.valueOf(right);
-            } else if (left instanceof Integer && right instanceof Integer) {
+            if (left instanceof Integer && right instanceof Integer) {
                 return (Integer) left + (Integer) right;
             } else if(left instanceof Number && right instanceof Number) {
                 return ((Number) left).doubleValue() + ((Number) right).doubleValue();
@@ -269,9 +267,7 @@ public class CoreLibrary implements ModuleDefinition {
         var opFloatFloat = new SimpleFunctionTypeToken(List.of(LiteralTypeToken.floatTypeToken, LiteralTypeToken.floatTypeToken), LiteralTypeToken.floatTypeToken);
         var opNum = new OverloadedFunctionTypeToken(List.of(opIntInt, opIntFloat, opFloatInt, opFloatFloat));
 
-        var opString = new SimpleFunctionTypeToken(List.of(LiteralTypeToken.stringTypeToken, LiteralTypeToken.stringTypeToken), LiteralTypeToken.stringTypeToken);
-
-        typeScope.declareType("+", new OverloadedFunctionTypeToken(List.of(opString, opIntInt, opIntFloat, opFloatInt, opFloatFloat)));
+        typeScope.declareType("+", new OverloadedFunctionTypeToken(List.of(opIntInt, opIntFloat, opFloatInt, opFloatFloat)));
 
         typeScope.declareType("-", opNum);
         typeScope.declareType("*", opNum);
