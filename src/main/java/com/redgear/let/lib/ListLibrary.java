@@ -19,8 +19,6 @@ public class ListLibrary implements ModuleDefinition {
     public void buildLibrary(Interpreter interpreter, Scope moduleScope) {
         var caller = new Caller(interpreter);
 
-        moduleScope.putFunc("build", (scope, args) -> List.ofAll(args));
-
         moduleScope.putFunc("get", (scope, args) -> {
 
             if (args.size() != 2) {
@@ -158,8 +156,6 @@ public class ListLibrary implements ModuleDefinition {
 
     @Override
     public void buildTypes(TypeScope typeScope) {
-        typeScope.declareType("build", new DynamicFunctionTypeToken("build", ListLibrary::buildList));
-
         var listItem = new ParamaterTypeToken("Item");
         var listParams = List.of(listItem);
         var listOfItem = LiteralTypeToken.listTypeToken.construct(List.of(listItem));
@@ -183,17 +179,5 @@ public class ListLibrary implements ModuleDefinition {
 
 
         typeScope.declareType("reduce", new GenericFunctionTypeToken(listParams, List.of(listOfItem, new GenericFunctionTypeToken(listParams, List.of(listItem, listItem), listItem)), listItem));
-    }
-
-    static TypeToken buildList(List<TypeToken> args) {
-        var type = args.reduce((left, right) -> {
-            if (left.equals(right)) {
-                return left;
-            } else {
-                throw new RuntimeException("Lists currently only support one type at a time. Found types: " + left.getName() + " and " + right.getName());
-            }
-        });
-
-        return LiteralTypeToken.listTypeToken.construct(List.of(type));
     }
 }

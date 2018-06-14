@@ -112,9 +112,6 @@ public class GenericFunctionTypeToken implements FunctionTypeToken {
     private Void traverseConstruction(TypeToken token, Consumer<TypeToken> consumer) {
         consumer.accept(token);
         Match(token).of(
-                Case(instanceOf(DynamicFunctionTypeToken.class), arg -> {
-                    throw new RuntimeException("Illegal use of DynamicFunctionTypeToken: This should never be used in a function call");
-                }),
                 Case(instanceOf(SimpleFunctionTypeToken.class), arg -> {
                     arg.getArgTypes().forEach(type -> traverseConstruction(type, consumer));
 

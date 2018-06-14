@@ -27,7 +27,7 @@ class AntlrTest {
     private static final Logger log = LoggerFactory.getLogger(AntlrTest.class);
 
     @Test
-    void basicInterpreterTest() {
+    void fullInterpreterTest() {
         var loader = new FileLoader(Paths.get("src/test/resources/"));
 
         var libTypeScope = new LibraryTypeScope();

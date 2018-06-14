@@ -30,7 +30,7 @@ public class AstBuilder {
     public Module build(ModuleContext module) {
         List<Expression> expressions = List.ofAll(module.statement()).map(this::build);
 
-        return new Module(new Location(module.getStart()),expressions);
+        return new Module(new Location(module.getStart()), expressions);
     }
 
     private Expression build(ImportStatementContext context) {
@@ -49,9 +49,9 @@ public class AstBuilder {
 
         Expression ex = build(context.expression());
 
-        if("_".equals(var.getName())) {
+        if ("_".equals(var.getName())) {
             return ex;
-        } else if(keywords.contains(var.getName())) {
+        } else if (keywords.contains(var.getName())) {
             throw new RuntimeException("Can't assign to: " + var.getName() + " " + var.getLocation().print());
         } else {
             return new Assignment(new Location(context.getStart()), null, var, ex);
@@ -147,7 +147,7 @@ public class AstBuilder {
                 ? buildQualifiedFunc(opLocation, "List", listOps.get(op).get())
                 : new Variable(opLocation, null, op);
 
-        Expression left  = build(context.expression(0));
+        Expression left = build(context.expression(0));
         Expression right = build(context.expression(1));
 
         return new Call(opLocation, null, opExpression, List.of(left, right));
@@ -156,7 +156,7 @@ public class AstBuilder {
     private Branch build(BinaryAndOpExpressionContext context) {
         Location opLocation = new Location(context.op);
 
-        Expression left  = build(context.expression(0));
+        Expression left = build(context.expression(0));
         Expression right = build(context.expression(1));
 
         return new Branch(opLocation, LiteralTypeToken.booleanTypeToken, left, right, new Literal(opLocation, false));
@@ -165,7 +165,7 @@ public class AstBuilder {
     private Branch build(BinaryOrOpExpressionContext context) {
         Location opLocation = new Location(context.op);
 
-        Expression left  = build(context.expression(0));
+        Expression left = build(context.expression(0));
         Expression right = build(context.expression(1));
 
         return new Branch(opLocation, LiteralTypeToken.booleanTypeToken, left, new Literal(opLocation, true), right);
@@ -199,18 +199,26 @@ public class AstBuilder {
         return new Literal(location, value);
     }
 
-    private Call build(MapLiteralExpressionContext context) {
-        Location location = new Location(context.getStart());
-        List<Expression> expressions = List.ofAll(context.expression()).map(this::build);
+    private MapLiteral build(MapLiteralExpressionContext context) {
+        var location = new Location(context.getStart());
+        var keys = List.ofAll(context.keys).map(this::build);
+        var values = List.ofAll(context.values).map(this::build);
 
-        return new Call(location, null, new Variable(location, null, "$buildMap"), expressions);
+        return new MapLiteral(location, null, keys, values);
     }
 
-    private Call build(ListLiteralExpressionContext context) {
-        Location location = new Location(context.getStart());
-        List<Expression> expressions = List.ofAll(context.expression()).map(this::build);
+    private ListLiteral build(ListLiteralExpressionContext context) {
+        var location = new Location(context.getStart());
+        var expressions = List.ofAll(context.expression()).map(this::build);
 
-        return new Call(location, null, new Variable(location, null, "$buildList"), expressions);
+        return new ListLiteral(location, null, expressions);
+    }
+
+    private TupleLiteral build(TupleLiteralExpressionContext context) {
+        var location = new Location(context.getStart());
+        var expressions = List.ofAll(context.expression()).map(this::build);
+
+        return new TupleLiteral(location, null, expressions);
     }
 
     private Branch build(IfExpressionContext context) {
@@ -259,6 +267,7 @@ public class AstBuilder {
                 Case(instanceOf(StringLiteralExpressionContext.class), this::build),
                 Case(instanceOf(MapLiteralExpressionContext.class), this::build),
                 Case(instanceOf(ListLiteralExpressionContext.class), this::build),
+                Case(instanceOf(TupleLiteralExpressionContext.class), this::build),
                 Case(instanceOf(IfExpressionContext.class), this::build),
                 Case(instanceOf(ForExpressionContext.class), this::build)
         );

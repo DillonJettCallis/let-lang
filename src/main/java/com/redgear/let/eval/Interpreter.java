@@ -5,6 +5,7 @@ import com.redgear.let.ast.Module;
 import com.redgear.let.lib.ModuleDefinition;
 import com.redgear.let.load.Loader;
 import com.redgear.let.types.ModuleTypeScope;
+import javaslang.Tuple;
 import javaslang.collection.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -143,6 +144,18 @@ public class Interpreter {
         return scope.getValue(expression.getName());
     }
 
+    private Object eval(LocalScope scope, MapLiteral expression) {
+        return expression.getKeys().zip(expression.getValues()).toMap(pair -> Tuple.of(eval(scope, pair._1), eval(scope, pair._2)));
+    }
+
+    private Object eval(LocalScope scope, ListLiteral expression) {
+        return expression.getValues().map(ex -> eval(scope, ex));
+    }
+
+    private Object eval(LocalScope scope, TupleLiteral expression) {
+        return expression.getValues().map(ex -> eval(scope, ex));
+    }
+
     private Object eval(LocalScope scope, Branch expression) {
         var condition = eval(scope, expression.getCondition());
 
@@ -170,6 +183,9 @@ public class Interpreter {
                 Case(instanceOf(Literal.class), this::eval),
                 Case(instanceOf(Parenthesized.class), ex -> eval(scope, ex)),
                 Case(instanceOf(Variable.class), ex -> eval(scope, ex)),
+                Case(instanceOf(MapLiteral.class), ex -> eval(scope, ex)),
+                Case(instanceOf(ListLiteral.class), ex -> eval(scope, ex)),
+                Case(instanceOf(TupleLiteral.class), ex -> eval(scope, ex)),
                 Case(instanceOf(Branch.class), ex -> eval(scope, ex)),
                 Case(instanceOf(ModuleAccess.class), ex -> eval(scope, ex))
         );

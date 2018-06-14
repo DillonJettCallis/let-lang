@@ -4,6 +4,7 @@ import com.redgear.let.ast.*;
 import com.redgear.let.ast.Module;
 import com.redgear.let.lib.ModuleDefinition;
 import com.redgear.let.load.Loader;
+import javaslang.collection.List;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -77,11 +78,13 @@ public class TypeChecker implements Loader {
     private Call visit(LocalTypeScope typeScope, Call ex) {
         var function = visit(typeScope, ex.getMethod());
         var funcType = function.getTypeToken();
-        var args = ex.getArguments().map(e -> visit(typeScope, e));
-        var argTypes = args.map(Expression::getTypeToken);
 
         if (funcType instanceof FunctionTypeToken) {
             var genTypeToken = (FunctionTypeToken) funcType;
+
+            var args = ex.getArguments().map(e -> visit(typeScope, e));
+            var argTypes = args.map(Expression::getTypeToken);
+
             var resultType = genTypeToken.getResultType(argTypes);
 
             if (resultType != null) {
@@ -91,17 +94,6 @@ public class TypeChecker implements Loader {
                 var actual = argTypes.map(TypeToken::getName).mkString(", ");
 
                 throw new RuntimeException("Attempt to call function with wrong types of arguments. Function type: " + expected + ", found args: (" + actual + "). " + ex.getLocation().print());
-            }
-        } else if (funcType instanceof DynamicFunctionTypeToken) {
-            var dynamicFunction = (DynamicFunctionTypeToken) funcType;
-            var resultType = dynamicFunction.getResultType(argTypes);
-
-            if (resultType == null) {
-                var actual = argTypes.map(TypeToken::getName).mkString(", ");
-
-                throw new RuntimeException("Attempt to call function with wrong types of arguments. Function: (" + dynamicFunction.getName() + "), found: (" + actual + "). " + ex.getLocation().print());
-            } else {
-                return new Call(ex.getLocation(), resultType, function, args);
             }
         } else {
             throw new RuntimeException("Attempt to call a non-function: " + ex.getLocation().print());
@@ -195,6 +187,39 @@ public class TypeChecker implements Loader {
         return ex.setTypeToken(typeToken);
     }
 
+    private MapLiteral visit(LocalTypeScope typeScope, MapLiteral ex) {
+        var keys = ex.getKeys().map(key -> visit(typeScope, key));
+        var values = ex.getValues().map(value -> visit(typeScope, value));
+
+        var keyType = singleType(keys.map(Expression::getTypeToken));
+        var valueType = singleType(values.map(Expression::getTypeToken));
+
+        if (keyType == null || valueType == null) {
+            throw new RuntimeException("Mixed maps are not yet supported " + ex.getLocation().print());
+        } else {
+            return new MapLiteral(ex.getLocation(), LiteralTypeToken.mapTypeToken.construct(List.of(keyType, valueType)), keys, values);
+        }
+    }
+
+    private ListLiteral visit(LocalTypeScope typeScope, ListLiteral ex) {
+        var values = ex.getValues().map(value -> visit(typeScope, value));
+
+        var valueType = singleType(values.map(Expression::getTypeToken));
+
+        if (valueType == null) {
+            throw new RuntimeException("Mixed lists are not yet supported " + ex.getLocation().print());
+        } else {
+            return new ListLiteral(ex.getLocation(), LiteralTypeToken.listTypeToken.construct(List.of(valueType)), values);
+        }
+    }
+
+    private TupleLiteral visit(LocalTypeScope typeScope, TupleLiteral ex) {
+        var values = ex.getValues().map(value -> visit(typeScope, value));
+        var valueTypes = values.map(Expression::getTypeToken);
+
+        return new TupleLiteral(ex.getLocation(), new GenericTypeToken(LiteralTypeToken.tupleTypeToken, valueTypes), values);
+    }
+
     private Branch visit(LocalTypeScope typeScope, Branch ex) {
         var condition = visit(typeScope, ex.getCondition());
 
@@ -227,6 +252,24 @@ public class TypeChecker implements Loader {
         }
     }
 
+    private TypeToken singleType(List<TypeToken> source) {
+        if (source.isEmpty()) {
+            return null;
+        } else {
+            return source.tail().foldLeft(source.head(), (prev, next) -> {
+                if (prev == null) {
+                    return null;
+                } else {
+                    if (prev.equals(next)) {
+                        return prev;
+                    } else {
+                        return null;
+                    }
+                }
+            });
+        }
+    }
+
     private Expression visit(LocalTypeScope typeScope, Expression expression) {
         return Match(expression).of(
                 Case(instanceOf(Assignment.class), ex -> visit(typeScope, ex)),
@@ -237,6 +280,9 @@ public class TypeChecker implements Loader {
                 Case(instanceOf(Literal.class), ex -> visit(typeScope, ex)),
                 Case(instanceOf(Parenthesized.class), ex -> visit(typeScope, ex)),
                 Case(instanceOf(Variable.class), ex -> visit(typeScope, ex)),
+                Case(instanceOf(MapLiteral.class), ex -> visit(typeScope, ex)),
+                Case(instanceOf(ListLiteral.class), ex -> visit(typeScope, ex)),
+                Case(instanceOf(TupleLiteral.class), ex -> visit(typeScope, ex)),
                 Case(instanceOf(Branch.class), ex -> visit(typeScope, ex)),
                 Case(instanceOf(ModuleAccess.class), ex -> visit(typeScope, ex))
         );

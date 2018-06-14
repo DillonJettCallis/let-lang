@@ -14,6 +14,7 @@ public class LiteralTypeToken implements TypeToken {
     public static final LiteralTypeToken unitTypeToken = new LiteralTypeToken("Unit");
     public static final TypeConstructorTypeToken listTypeToken = new TypeConstructorTypeToken(new LiteralTypeToken("List"), 1);
     public static final TypeConstructorTypeToken mapTypeToken = new TypeConstructorTypeToken(new LiteralTypeToken("Map"), 2);
+    public static final LiteralTypeToken tupleTypeToken = new LiteralTypeToken("Tuple");
 
     public LiteralTypeToken(String name) {
         this.name = name;

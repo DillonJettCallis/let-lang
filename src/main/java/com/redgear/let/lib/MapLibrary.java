@@ -18,8 +18,6 @@ public class MapLibrary implements ModuleDefinition {
     @Override
     public void buildLibrary(Interpreter interpreter, Scope moduleScope) {
 
-        moduleScope.putFunc("build", (scope, args) -> args.sliding(2, 2).toMap(pair -> Tuple.of(pair.get(0), pair.get(1))));
-
         moduleScope.putFunc("get", (scope, args) -> {
 
             if(args.size() != 2) {
@@ -39,8 +37,6 @@ public class MapLibrary implements ModuleDefinition {
 
     @Override
     public void buildTypes(TypeScope typeScope) {
-        typeScope.declareType("build", new DynamicFunctionTypeToken("build", MapLibrary::buildMap));
-
         var keyType = new ParamaterTypeToken("Key");
         var valueType = new ParamaterTypeToken("Value");
         var inputMap = LiteralTypeToken.mapTypeToken.construct(List.of(keyType, valueType));
@@ -48,29 +44,5 @@ public class MapLibrary implements ModuleDefinition {
         var baseParams = List.of(keyType, valueType);
 
         typeScope.declareType("get", new GenericFunctionTypeToken(baseParams, List.of(inputMap, keyType), valueType));
-    }
-
-    static TypeToken buildMap(List<TypeToken> args) {
-        if (args.size() % 2 == 0) {
-            var keyType = args.head();
-            var valueType = args.last();
-
-            boolean isValid = args.sliding(2, 2).foldLeft(true, (prev, next) -> {
-                if (prev) {
-                    var key = next.head();
-                    var value = next.last();
-
-                    return keyType.equals(key) && valueType.equals(value);
-                } else {
-                    return false;
-                }
-            });
-
-            if (isValid) {
-                return LiteralTypeToken.mapTypeToken.construct(List.of(keyType, valueType));
-            }
-        }
-
-        return null;
     }
 }

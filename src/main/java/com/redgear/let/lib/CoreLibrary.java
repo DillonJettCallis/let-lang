@@ -241,9 +241,6 @@ public class CoreLibrary implements ModuleDefinition {
             return value == null || value == Boolean.FALSE;
         });
 
-        libraryScope.putFunc("$buildList", (scope, args) -> List.ofAll(args));
-        libraryScope.putFunc("$buildMap", (scope, args) -> args.sliding(2, 2).toMap(pair -> Tuple.of(pair.get(0), pair.get(1))));
-
         libraryScope.putFunc("print", (scope, args) -> {
 
             String output = args.mkString();
@@ -258,7 +255,7 @@ public class CoreLibrary implements ModuleDefinition {
         typeScope.declareType("_", LiteralTypeToken.nullTypeToken);
         typeScope.declareType("true", LiteralTypeToken.booleanTypeToken);
         typeScope.declareType("false", LiteralTypeToken.booleanTypeToken);
-        typeScope.declareType("print", new DynamicFunctionTypeToken("print", args -> LiteralTypeToken.stringTypeToken));
+        typeScope.declareType("print", new SimpleFunctionTypeToken(List.of(LiteralTypeToken.stringTypeToken), LiteralTypeToken.unitTypeToken));
 
         var opIntInt = new SimpleFunctionTypeToken(List.of(LiteralTypeToken.intTypeToken, LiteralTypeToken.intTypeToken), LiteralTypeToken.intTypeToken);
         var opIntFloat = new SimpleFunctionTypeToken(List.of(LiteralTypeToken.intTypeToken, LiteralTypeToken.floatTypeToken), LiteralTypeToken.floatTypeToken);
@@ -279,15 +276,11 @@ public class CoreLibrary implements ModuleDefinition {
         typeScope.declareType("**", opNum);
 
         typeScope.declareType("!", new SimpleFunctionTypeToken(List.of(LiteralTypeToken.booleanTypeToken), LiteralTypeToken.booleanTypeToken));
-        typeScope.declareType("?", new DynamicFunctionTypeToken("?", args -> {
-            if (args.size() != 1) {
-                return null;
-            } else {
-                return LiteralTypeToken.booleanTypeToken;
-            }
-        }));
 
         var param = new ParamaterTypeToken("Type");
+
+        typeScope.declareType("?", new GenericFunctionTypeToken(List.of(param), List.of(param), LiteralTypeToken.booleanTypeToken));
+
         var equality = new GenericFunctionTypeToken(List.of(param), List.of(param, param), LiteralTypeToken.booleanTypeToken);
 
         typeScope.declareType("==", equality);
@@ -306,9 +299,6 @@ public class CoreLibrary implements ModuleDefinition {
         typeScope.declareType("String", LiteralTypeToken.stringTypeToken);
         typeScope.declareType("Int", LiteralTypeToken.intTypeToken);
         typeScope.declareType("Float", LiteralTypeToken.floatTypeToken);
-
-        typeScope.declareType("$buildList", new DynamicFunctionTypeToken("$buildList", ListLibrary::buildList));
-        typeScope.declareType("$buildMap", new DynamicFunctionTypeToken("$buildMap", MapLibrary::buildMap));
     }
 
     private void validateArgs(String op, List<?> args, int values) {
