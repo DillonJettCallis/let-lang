@@ -17,8 +17,8 @@ public class OverloadedFunctionTypeToken implements FunctionTypeToken {
     }
 
     @Override
-    public TypeToken getResultType(List<TypeToken> argTypes) {
-        return implementations.map(impl -> impl.getResultType(argTypes)).find(Objects::nonNull).getOrElse((TypeToken) null);
+    public SimpleFunctionTypeToken getResolvedType(List<TypeToken> argTypes) {
+        return implementations.map(impl -> impl.getResolvedType(argTypes)).find(Objects::nonNull).getOrElse((SimpleFunctionTypeToken) null);
     }
 
     @Override

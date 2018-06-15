@@ -60,14 +60,20 @@ public class AstBuilder {
 
     private Lambda build(FunctionExpressionContext context) {
         // TODO: Parse and build generic functions
-        var argTypes = List.ofAll(context.argTypes).map(this::buildTypeToken);
-        var args = List.ofAll(context.LocalIdentifier()).map(this::makeVariable)
-                .zip(argTypes)
-                .map(pair -> pair._1.setTypeToken(pair._2));
+        var args = List.ofAll(context.maybeQualifiedVariable())
+                .map(maybe -> {
+                    var partial = makeVariable(maybe.LocalIdentifier());
+
+                    if (maybe.argTypes != null) {
+                        return partial.setTypeToken(buildTypeToken(maybe.argTypes));
+                    } else {
+                        return partial;
+                    }
+                });
 
         var body = List.ofAll(context.expression()).map(this::build);
 
-        return new Lambda(new Location(context.getStart()), new SimpleFunctionTypeToken(argTypes, null), args, body);
+        return new Lambda(new Location(context.getStart()), new SimpleFunctionTypeToken(args.map(Variable::getTypeToken), null), args, body);
     }
 
     private Expression build(FunctionStatementContext context) {

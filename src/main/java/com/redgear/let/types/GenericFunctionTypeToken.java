@@ -36,7 +36,7 @@ public class GenericFunctionTypeToken implements FunctionTypeToken {
         return resultType;
     }
 
-    public TypeToken getResultType(List<TypeToken> args) {
+    public SimpleFunctionTypeToken getResolvedType(List<TypeToken> args) {
         var params = new HashMap<String, TypeToken>();
 
         if (args.size() == getArgTypes().size()) {
@@ -51,7 +51,10 @@ public class GenericFunctionTypeToken implements FunctionTypeToken {
             return null;
         }
 
-        return fillParams(resultType, params);
+        var resolveArgTypes = argTypes.map(type -> fillParams(type, params));
+        var resolvedResultType = fillParams(resultType, params);
+
+        return new SimpleFunctionTypeToken(resolveArgTypes, resolvedResultType);
     }
 
     private TypeToken fillParams(TypeToken typeToken, Map<String, TypeToken> params) {
@@ -62,6 +65,11 @@ public class GenericFunctionTypeToken implements FunctionTypeToken {
             var genType = (GenericTypeToken) typeToken;
 
             return new GenericTypeToken(genType.getTypeConstructor(), genType.getTypeParams().map(inner -> fillParams(inner, params)));
+        } else if (typeToken instanceof GenericFunctionTypeToken) {
+            var genFunctionTypeToken = (GenericFunctionTypeToken) typeToken;
+            var resolveArgTypes = genFunctionTypeToken.getArgTypes().map(type -> fillParams(type, params));
+            var resolvedResultType = fillParams(genFunctionTypeToken.getResultType(), params);
+            return new SimpleFunctionTypeToken(resolveArgTypes, resolvedResultType);
         } else {
             return typeToken;
         }
@@ -145,12 +153,16 @@ public class GenericFunctionTypeToken implements FunctionTypeToken {
             var functionTemplate = (GenericFunctionTypeToken) template;
             var functionGiven = (SimpleFunctionTypeToken) given;
 
-            traverseMatch(functionGiven.getResultType(), functionTemplate.getResultType(), params);
-
             if (functionGiven.getArgTypes().size() == functionTemplate.getArgTypes().size()) {
                 functionGiven.getArgTypes().zip(functionTemplate.getArgTypes()).forEach(pair -> {
-                    traverseMatch(pair._1, pair._2, params);
+                    if (pair._1 != null) {
+                        traverseMatch(pair._1, pair._2, params);
+                    }
                 });
+
+                if (functionGiven.getResultType() != null) {
+                    traverseMatch(functionGiven.getResultType(), functionTemplate.getResultType(), params);
+                }
             } else {
                 throw new RuntimeException("Non-matching type parameters");
             }

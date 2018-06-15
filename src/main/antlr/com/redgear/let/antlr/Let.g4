@@ -24,7 +24,7 @@ expression
  : Let LocalIdentifier '=' expression ';'? # AssignmentExpression
  | 'if' condition=expression '{' thenExpressions+=expression '}' ('else' '{' elseExpressions+=expression '}')? # IfExpression
  | 'for' '(' parent=LocalIdentifier 'in' collection=expression ')' '{' body=expression+ '}' # ForExpression
- | '{' (LocalIdentifier ':' argTypes+=typeExpression (',' LocalIdentifier ':' argTypes+=typeExpression)* )? '=>' expression+ '}' # FunctionExpression
+ | '{' (maybeQualifiedVariable (',' maybeQualifiedVariable)* )? '=>' expression+ '}' # FunctionExpression
  | ModuleIdentifier '.' LocalIdentifier  # ModuleAccessExpression
  | expression op=('|' | '|?' | '|/' | '|!' | '|&') expression # BinaryOpExpression
  | method=expression '(' (args+=expression (',' args+=expression)*)? ')' # CallExpression
@@ -53,6 +53,10 @@ typeExpression
  : ModuleIdentifier # TypeIdentifier
  | type=typeExpression '<' typeParams+=typeExpression (',' typeParams+=typeExpression)* '>' # TypeGenericIdentifier
  | '{' (argTypes+=typeExpression (',' argTypes+=typeExpression)*)? '=>' resultType=typeExpression '}' # TypeFunctionIdentifier
+ ;
+
+maybeQualifiedVariable
+ : arg=LocalIdentifier (':' argTypes=typeExpression)?
  ;
 
 BinaryOp

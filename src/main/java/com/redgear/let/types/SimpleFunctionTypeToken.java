@@ -23,9 +23,9 @@ public class SimpleFunctionTypeToken implements FunctionTypeToken {
     }
 
     @Override
-    public TypeToken getResultType(List<TypeToken> argTypes) {
+    public SimpleFunctionTypeToken getResolvedType(List<TypeToken> argTypes) {
         if (this.argTypes.equals(argTypes)) {
-            return resultType;
+            return this;
         } else {
             return null;
         }

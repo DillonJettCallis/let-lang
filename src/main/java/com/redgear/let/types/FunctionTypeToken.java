@@ -4,6 +4,6 @@ import javaslang.collection.List;
 
 public interface FunctionTypeToken extends TypeToken {
 
-    TypeToken getResultType(List<TypeToken> argTypes);
+    SimpleFunctionTypeToken getResolvedType(List<TypeToken> argTypes);
 
 }
