@@ -82,56 +82,73 @@ public class TypeChecker implements Loader {
         if (funcType instanceof FunctionTypeToken) {
             var genTypeToken = (FunctionTypeToken) funcType;
 
-            var args = ex.getArguments().map(e -> {
-                if (e instanceof Lambda) {
-                    var simple = (Lambda) e;
-                    var vars = simple.getVariables().map(v -> {
-                        if (v.getTypeToken() == null) {
-                            return v;
-                        } else {
-                            return v.setTypeToken(resolveTypeToken(v.getTypeToken()));
-                        }
-                    });
+            var needsHigherOrder = ex.getArguments().find(e -> e instanceof Lambda && ((Lambda) e).getVariables().find(v -> v.getTypeToken() == null).isDefined()).isDefined();
 
-                    return new Lambda(simple.getLocation(), (FunctionTypeToken) resolveTypeToken(simple.getTypeToken()), vars, simple.getStatements());
-                } else {
-                    return visit(typeScope, e);
-                }
-            });
-            var argTypes = args.map(Expression::getTypeToken);
-
-            var resolvedType = genTypeToken.getResolvedType(argTypes);
-
-            var resolvedArgs = args.zip(resolvedType.getArgTypes()).map(pair -> {
-                if (pair._1 instanceof Lambda && pair._2 instanceof SimpleFunctionTypeToken) {
-                    var l = (Lambda) pair._1;
-                    var f = (SimpleFunctionTypeToken) pair._2;
-                    var vars = l.getVariables().zip(f.getArgTypes()).map(param -> {
-                        if (param._1.getTypeToken() == null) {
-                            return new Variable(param._1.getLocation(), param._2, param._1.getName());
-                        } else {
-                            return param._1;
-                        }
-                    });
-
-                    return visit(typeScope, new Lambda(l.getLocation(), l.getTypeToken(), vars, l.getStatements()));
-                } else {
-                    return pair._1;
-                }
-            });
-
-            var resultType = genTypeToken.getResolvedType(resolvedArgs.map(Expression::getTypeToken)).getResultType();
-
-            if (resultType != null) {
-                return new Call(ex.getLocation(), resultType, function, args);
+            if (needsHigherOrder) {
+                return resolveHigherOrderFunctionCall(typeScope, ex, function, genTypeToken);
             } else {
-                var expected = genTypeToken.getName();
-                var actual = argTypes.map(TypeToken::getName).mkString(", ");
+                var args = ex.getArguments().map(e -> visit(typeScope, e));
+                var argTypes = args.map(Expression::getTypeToken);
 
-                throw new RuntimeException("Attempt to call function with wrong types of arguments. Function type: " + expected + ", found args: (" + actual + "). " + ex.getLocation().print());
+                return buildCall(ex, function, genTypeToken, args, argTypes);
             }
         } else {
             throw new RuntimeException("Attempt to call a non-function: " + ex.getLocation().print());
+        }
+    }
+
+    private Call resolveHigherOrderFunctionCall(LocalTypeScope typeScope, Call ex, Expression function, FunctionTypeToken genTypeToken) {
+        var args = ex.getArguments().map(e -> {
+            if (e instanceof Lambda) {
+                var simple = (Lambda) e;
+                var vars = simple.getVariables().map(v -> {
+                    if (v.getTypeToken() == null) {
+                        return v;
+                    } else {
+                        return v.setTypeToken(resolveTypeToken(v.getTypeToken()));
+                    }
+                });
+
+                return new Lambda(simple.getLocation(), (FunctionTypeToken) resolveTypeToken(simple.getTypeToken()), vars, simple.getStatements());
+            } else {
+                return visit(typeScope, e);
+            }
+        });
+        var argTypes = args.map(Expression::getTypeToken);
+
+        var resolvedType = genTypeToken.getResolvedType(argTypes);
+
+        var resolvedArgs = args.zip(resolvedType.getArgTypes()).map(pair -> {
+            if (pair._1 instanceof Lambda && pair._2 instanceof SimpleFunctionTypeToken) {
+                var l = (Lambda) pair._1;
+                var f = (SimpleFunctionTypeToken) pair._2;
+                var vars = l.getVariables().zip(f.getArgTypes()).map(param -> {
+                    if (param._1.getTypeToken() == null) {
+                        return new Variable(param._1.getLocation(), param._2, param._1.getName());
+                    } else {
+                        return param._1;
+                    }
+                });
+
+                return visit(typeScope, new Lambda(l.getLocation(), l.getTypeToken(), vars, l.getStatements()));
+            } else {
+                return pair._1;
+            }
+        });
+
+        return buildCall(ex, function, genTypeToken, args, resolvedArgs.map(Expression::getTypeToken));
+    }
+
+    private Call buildCall(Call ex, Expression function, FunctionTypeToken genTypeToken, List<Expression> args, List<TypeToken> argTypes) {
+        var resultType = genTypeToken.getResolvedType(argTypes).getResultType();
+
+        if (resultType != null) {
+            return new Call(ex.getLocation(), resultType, function, args);
+        } else {
+            var expected = genTypeToken.getName();
+            var actual = argTypes.map(TypeToken::getName).mkString(", ");
+
+            throw new RuntimeException("Attempt to call function with wrong types of arguments. Function type: " + expected + ", found args: (" + actual + "). " + ex.getLocation().print());
         }
     }
 

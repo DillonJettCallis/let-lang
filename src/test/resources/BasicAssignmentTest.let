@@ -1,16 +1,20 @@
 
 # This is a comment
 
-import SomeLib
-import OtherLib
+
 import Core.Map
 import Core.List
 import Core.String
 
 
 fun test(): Unit {
-    [1, 2, 3, 4, 5] | { n => n ** 2}
+    let listOfWords = for (next in 'This is a test'::String.split(' ')) {
+        print(next & ' ' & next::String.size())
+    }
 }
+
+import SomeLib
+import OtherLib
 
 export fun sum(l: Int, r: Int): Int { l + r}
 
@@ -107,7 +111,7 @@ export fun main(): Unit {
 
     let third = nums::List.get(2)
 
-    [1, 2, 3, 4, 5] | { n: Int => n ** 2} |! { num: Int => print('' & num) }
+    [1, 2, 3, 4, 5] | { n => n ** 2} |! { num => print('' & num) }
 
     print(if 2 > 4 { "a" } else { "b" })
 
@@ -120,18 +124,14 @@ export fun main(): Unit {
 
     let product = nums | {i: Int => i + 1}  |& SomeLib.multiply
 
-    let flat = [1, 2, 3] |/ {i: Int => [i, i]} |& sum :: String.toString() :: print()
+    let flat = [1, 2, 3] |/ {i => [i, i]} |& sum :: String.toString() :: print()
 
-    let listOfWords = 'This is a test'::String.split(' ') | { next: String =>
+    let listOfWords = for (next in 'This is a test'::String.split(' ')) {
         print(next & ' ' & next::String.size())
     }
 
-    #let listOfWords = for (next in 'This is a test'::String.split(' ')) {
-    #    print(next, ' ', next::String.size())
-    #}
-
-    let foldResult = List.fold([1, 2, 3], '', {s: String, i: Int => s & i})
-    let reduceResult = List.reduce([1, 2, 3], {a: Int, b: Int => a + b})
+    let foldResult = List.fold([1, 2, 3], '', {s, i => s & i})
+    let reduceResult = List.reduce([1, 2, 3], {a, b => a + b})
 
     let pair = (3, 4)
 

@@ -242,7 +242,7 @@ public class AstBuilder {
         Expression collection = build(context.collection);
         List<Expression> body = List.ofAll(context.expression()).map(this::build);
 
-        Lambda func = new Lambda(new Location(context.getStart()), null, List.of(local), body);
+        Lambda func = new Lambda(new Location(context.getStart()), new SimpleFunctionTypeToken(List.of(local.getTypeToken()), null), List.of(local), body);
 
         return new Call(location, null, buildQualifiedFunc(location, "List", "map"), List.of(collection, func));
     }
