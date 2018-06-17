@@ -18,10 +18,12 @@ import OtherLib
 
 export fun sum(l: Int, r: Int): Int { l + r}
 
-fun productIntInt(l: Int, r: Int): Int { l * r }
-fun productIntFloat(l: Int, r: Float): Float { l * r }
-fun productFloatInt(l: Float, r: Int): Float { l * r }
-fun productFloatFloat(l: Float, r: Float): Float { l * r }
+fun product {
+    (l: Int, r: Int): Int { l * r }
+    (l: Int, r: Float): Float { l * r }
+    (l: Float, r: Int): Float { l * r }
+    (l: Float, r: Float): Float { l * r }
+}
 
 fun pi(): Float { 3.14 }
 
@@ -66,7 +68,9 @@ export fun main(): Unit {
 
     let double = {num: Int => num * 2 }
 
-    let op = { num: Int, action: {Int => Int} => action(num) * action(num) }
+    fun op (num: Int, action: {Int => Int}): Int {
+        action(num) * action(num)
+    }
 
     let higher = op(2, double)
 
@@ -122,7 +126,7 @@ export fun main(): Unit {
 
     let total = l |& SomeLib.multiply
 
-    let product = nums | {i: Int => i + 1}  |& SomeLib.multiply
+    let totalTest = nums | {i: Int => i + 1}  |& SomeLib.multiply
 
     let flat = [1, 2, 3] |/ {i => [i, i]} |& sum :: String.toString() :: print()
 
@@ -134,5 +138,16 @@ export fun main(): Unit {
     let reduceResult = List.reduce([1, 2, 3], {a, b => a + b})
 
     let pair = (3, 4)
+
+    let floatProd = product(2.0, 5.5)
+    let intProd = product(2, 6)
+
+
+    fun concatIndexes<T>(list: List<T>, first: Int, second: Int): String {
+        List.get(list, first) & List.get(list, second)
+    }
+
+    let concatIndexStringTest = concatIndexes(["A", "B", "C"], 0, 2);
+    let concatIndexNumTest = concatIndexes([5, 4, 3], 1, 2);
 
 }

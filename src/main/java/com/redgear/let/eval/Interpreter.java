@@ -126,6 +126,18 @@ public class Interpreter {
         };
     }
 
+    private MacroFunc eval(LocalScope scope, OverloadedFunction expression) {
+        return (argScope, args) -> {
+            var fun = expression.findMatchingOverload(args.map(Expression::getTypeToken));
+
+            if (fun == null) {
+                throw new RuntimeException("No matching overload found. " + expression.getLocation().print());
+            } else {
+                return caller.call(argScope, eval(scope, fun), args);
+            }
+        };
+    }
+
     private Object eval(Literal expression) {
         return expression.getValue();
     }
@@ -180,6 +192,7 @@ public class Interpreter {
                 Case(instanceOf(Export.class), ex -> eval(scope, ex)),
                 Case(instanceOf(Import.class), ex -> eval(scope, ex)),
                 Case(instanceOf(Lambda.class), ex -> eval(scope, ex)),
+                Case(instanceOf(OverloadedFunction.class), ex -> eval(scope, ex)),
                 Case(instanceOf(Literal.class), this::eval),
                 Case(instanceOf(Parenthesized.class), ex -> eval(scope, ex)),
                 Case(instanceOf(Variable.class), ex -> eval(scope, ex)),

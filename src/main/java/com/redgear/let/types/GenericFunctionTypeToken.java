@@ -10,7 +10,7 @@ import static javaslang.API.Case;
 import static javaslang.API.Match;
 import static javaslang.Predicates.instanceOf;
 
-public class GenericFunctionTypeToken implements FunctionTypeToken {
+public class GenericFunctionTypeToken implements SingleFunctionTypeToken {
 
     private final List<ParamaterTypeToken> typeParameters;
     private final List<TypeToken> argTypes;
@@ -32,8 +32,14 @@ public class GenericFunctionTypeToken implements FunctionTypeToken {
         return argTypes;
     }
 
+    @Override
     public TypeToken getResultType() {
         return resultType;
+    }
+
+    @Override
+    public SingleFunctionTypeToken setResultType(TypeToken resultType) {
+        return new GenericFunctionTypeToken(typeParameters, argTypes, resultType);
     }
 
     public SimpleFunctionTypeToken getResolvedType(List<TypeToken> args) {

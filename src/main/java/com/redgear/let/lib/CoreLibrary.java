@@ -296,8 +296,8 @@ public class CoreLibrary implements ModuleDefinition {
         typeScope.declareType(">=", numCompare);
         typeScope.declareType("=<", numCompare);
 
-        typeScope.declareType("List", LiteralTypeToken.listTypeToken);
-        typeScope.declareType("Map", LiteralTypeToken.mapTypeToken);
+        typeScope.declareType("List", LiteralTypeToken.listTypeToken.getBase());
+        typeScope.declareType("Map", LiteralTypeToken.mapTypeToken.getBase());
         typeScope.declareType("String", LiteralTypeToken.stringTypeToken);
         typeScope.declareType("Int", LiteralTypeToken.intTypeToken);
         typeScope.declareType("Float", LiteralTypeToken.floatTypeToken);

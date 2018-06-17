@@ -47,11 +47,29 @@ public class TypeChecker implements Loader {
         if (typeToken instanceof NamedTypeToken) {
             String name = typeToken.getName();
             return typeScope.getType(name);
-        } else if (typeToken instanceof OverloadedFunctionTypeToken) {
-            return new OverloadedFunctionTypeToken( ((OverloadedFunctionTypeToken) typeToken).getImplementations().map(this::resolveTypeToken));
-        } else if (typeToken instanceof GenericFunctionTypeToken) {
-            var funcTypeToken = (GenericFunctionTypeToken) typeToken;
-            return new GenericFunctionTypeToken(funcTypeToken.getTypeParameters(), funcTypeToken.getArgTypes().map(this::resolveTypeToken), resolveTypeToken(funcTypeToken.getResultType()));
+        } else if (typeToken instanceof FunctionTypeToken) {
+            return resolveTypeToken((FunctionTypeToken) typeToken);
+        } if (typeToken instanceof GenericTypeToken) {
+            var gen = (GenericTypeToken) typeToken;
+            return new GenericTypeToken(resolveTypeToken(gen.getTypeConstructor()), gen.getTypeParams().map(this::resolveTypeToken));
+        } else {
+            return typeToken;
+        }
+    }
+
+    private FunctionTypeToken resolveTypeToken(FunctionTypeToken typeToken) {
+        if (typeToken instanceof OverloadedFunctionTypeToken) {
+            return resolveTypeToken((OverloadedFunctionTypeToken) typeToken);
+        } else if (typeToken instanceof SingleFunctionTypeToken) {
+            return resolveTypeToken((SingleFunctionTypeToken) typeToken);
+        } else {
+            return typeToken;
+        }
+    }
+
+    private SingleFunctionTypeToken resolveTypeToken(SingleFunctionTypeToken typeToken) {
+        if (typeToken instanceof GenericFunctionTypeToken) {
+            return resolveTypeToken((GenericFunctionTypeToken) typeToken);
         } else if (typeToken instanceof SimpleFunctionTypeToken) {
             return resolveTypeToken((SimpleFunctionTypeToken) typeToken);
         } else {
@@ -59,8 +77,16 @@ public class TypeChecker implements Loader {
         }
     }
 
-    private SimpleFunctionTypeToken resolveTypeToken(SimpleFunctionTypeToken funcTypeToken) {
-        return new SimpleFunctionTypeToken(funcTypeToken.getArgTypes().map(this::resolveTypeToken), resolveTypeToken(funcTypeToken.getResultType()));
+    private SimpleFunctionTypeToken resolveTypeToken(SimpleFunctionTypeToken typeToken) {
+        return new SimpleFunctionTypeToken(typeToken.getArgTypes().map(this::resolveTypeToken), resolveTypeToken(typeToken.getResultType()));
+    }
+
+    private GenericFunctionTypeToken resolveTypeToken(GenericFunctionTypeToken typeToken) {
+        return new GenericFunctionTypeToken(typeToken.getTypeParameters(), typeToken.getArgTypes().map(this::resolveTypeToken), resolveTypeToken(typeToken.getResultType()));
+    }
+
+    private OverloadedFunctionTypeToken resolveTypeToken(OverloadedFunctionTypeToken typeToken) {
+        return new OverloadedFunctionTypeToken(typeToken.getImplementations().map(this::resolveTypeToken));
     }
 
     private TypeToken sureType(TypeToken typeToken) {
@@ -109,7 +135,7 @@ public class TypeChecker implements Loader {
                     }
                 });
 
-                return new Lambda(simple.getLocation(), (FunctionTypeToken) resolveTypeToken(simple.getTypeToken()), vars, simple.getStatements());
+                return new Lambda(simple.getLocation(), resolveTypeToken(simple.getTypeToken()), vars, simple.getStatements());
             } else {
                 return visit(typeScope, e);
             }
@@ -140,7 +166,9 @@ public class TypeChecker implements Loader {
     }
 
     private Call buildCall(Call ex, Expression function, FunctionTypeToken genTypeToken, List<Expression> args, List<TypeToken> argTypes) {
-        var resultType = genTypeToken.getResolvedType(argTypes).getResultType();
+        var resolvedType = genTypeToken.getResolvedType(argTypes);
+
+        var resultType = resolvedType == null ? null : resolvedType.getResultType();
 
         if (resultType != null) {
             return new Call(ex.getLocation(), resultType, function, args);
@@ -183,13 +211,26 @@ public class TypeChecker implements Loader {
     private Lambda visit(LocalTypeScope typeScope, Lambda ex) {
         var innerScope = new LocalTypeScope(typeScope);
 
-        var functionType = (SimpleFunctionTypeToken) resolveTypeToken(ex.getTypeToken());
+        var functionType = resolveTypeToken(ex.getTypeToken());
 
         var args = ex.getVariables()
-                .map(arg -> arg.setTypeToken(resolveTypeToken(arg.getTypeToken())));
+                .map(arg -> {
+                    var argType = arg.getTypeToken();
+
+                    if (functionType instanceof GenericFunctionTypeToken) {
+                        var paramTypes = ((GenericFunctionTypeToken) functionType).getTypeParameters();
+
+                        var maybeParam = paramTypes.find(param -> param.getName().equals(arg.getName()));
+
+                        if (maybeParam.isDefined()) {
+                            return arg.setTypeToken(maybeParam.get());
+                        }
+                    }
+
+                    return arg.setTypeToken(resolveTypeToken(arg.getTypeToken()));
+                });
         args.forEach(arg -> innerScope.declareType(arg.getName(), sureType(arg.getTypeToken())));
 
-        // TODO: Allow and verify the body of Generic functions
         var body = ex.getStatements().map(e -> visit(innerScope, e));
         var bodyTypeToken = body.last().getTypeToken();
 
@@ -200,6 +241,10 @@ public class TypeChecker implements Loader {
         }
 
         return new Lambda(ex.getLocation(), functionType.setResultType(bodyTypeToken), args, body);
+    }
+
+    private OverloadedFunction visit(LocalTypeScope typeScope, OverloadedFunction ex) {
+        return new OverloadedFunction(ex.getLocation(), resolveTypeToken(ex.getTypeToken()), ex.getOverloads().map(over -> visit(typeScope, over)));
     }
 
 
@@ -329,6 +374,7 @@ public class TypeChecker implements Loader {
                 Case(instanceOf(Export.class), ex -> visit(typeScope, ex)),
                 Case(instanceOf(Import.class), ex -> visit(typeScope, ex)),
                 Case(instanceOf(Lambda.class), ex -> visit(typeScope, ex)),
+                Case(instanceOf(OverloadedFunction.class), ex -> visit(typeScope, ex)),
                 Case(instanceOf(Literal.class), ex -> visit(typeScope, ex)),
                 Case(instanceOf(Parenthesized.class), ex -> visit(typeScope, ex)),
                 Case(instanceOf(Variable.class), ex -> visit(typeScope, ex)),

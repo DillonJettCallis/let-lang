@@ -1,16 +1,16 @@
 package com.redgear.let.ast;
 
-import com.redgear.let.types.FunctionTypeToken;
+import com.redgear.let.types.SingleFunctionTypeToken;
 import javaslang.collection.List;
 
 public class Lambda implements Expression {
 
     private final Location location;
-    private final FunctionTypeToken typeToken;
+    private final SingleFunctionTypeToken typeToken;
     private final List<Variable> variables;
     private final List<Expression> statements;
 
-    public Lambda(Location location, FunctionTypeToken typeToken, List<Variable> variables, List<Expression> statements) {
+    public Lambda(Location location, SingleFunctionTypeToken typeToken, List<Variable> variables, List<Expression> statements) {
         this.location = location;
         this.typeToken = typeToken;
         this.variables = variables;
@@ -31,7 +31,7 @@ public class Lambda implements Expression {
     }
 
     @Override
-    public FunctionTypeToken getTypeToken() {
+    public SingleFunctionTypeToken getTypeToken() {
         return typeToken;
     }
 

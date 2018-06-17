@@ -12,8 +12,7 @@ module
 
 statement
  : portIn # ImportStatement
- | exported=Export? 'fun' id=LocalIdentifier '(' (args+=LocalIdentifier ':' argTypes+=typeExpression (',' args+=LocalIdentifier ':' argTypes+=typeExpression )* )? ')' ':' resultType=typeExpression
-    '{' body=expression+ '}' # FunctionStatement
+ | exported=Export? 'fun' id=LocalIdentifier functionDeclaration # FunctionStatement
  ;
 
 portIn
@@ -24,7 +23,8 @@ expression
  : Let LocalIdentifier '=' expression ';'? # AssignmentExpression
  | 'if' condition=expression '{' thenExpressions+=expression '}' ('else' '{' elseExpressions+=expression '}')? # IfExpression
  | 'for' '(' parent=LocalIdentifier 'in' collection=expression ')' '{' body=expression+ '}' # ForExpression
- | '{' (maybeQualifiedVariable (',' maybeQualifiedVariable)* )? '=>' expression+ '}' # FunctionExpression
+ | 'fun' id=LocalIdentifier functionDeclaration # FunctionExpression
+ | '{' (maybeQualifiedVariable (',' maybeQualifiedVariable)* )? '=>' expression+ '}' # LambdaExpression
  | ModuleIdentifier '.' LocalIdentifier  # ModuleAccessExpression
  | expression op=('|' | '|?' | '|/' | '|!' | '|&') expression # BinaryOpExpression
  | method=expression '(' (args+=expression (',' args+=expression)*)? ')' # CallExpression
@@ -49,10 +49,24 @@ expression
  | '(' expression+ ')' # ParenthesizedExpression
  ;
 
+functionDeclaration
+    : singleFunctionDeclaration # SingleFunctionExpression
+    | '{' singleFunctionDeclaration+ '}' # OverloadedFunctionExpression
+    ;
+
+singleFunctionDeclaration
+    : '(' (args+=qualifiedVariable (',' args+=qualifiedVariable )* )? ')' ':' resultType=typeExpression '{' body=expression+ '}' # SimpleFunctionExpression
+    | '<' typeParam+=typeExpression (',' typeParam+=typeExpression)*  '>' '(' (args+=qualifiedVariable (',' args+=qualifiedVariable )* )? ')' ':' resultType=typeExpression '{' body=expression+ '}' # GenericFunctionExpression
+    ;
+
 typeExpression
  : ModuleIdentifier # TypeIdentifier
  | type=typeExpression '<' typeParams+=typeExpression (',' typeParams+=typeExpression)* '>' # TypeGenericIdentifier
  | '{' (argTypes+=typeExpression (',' argTypes+=typeExpression)*)? '=>' resultType=typeExpression '}' # TypeFunctionIdentifier
+ ;
+
+qualifiedVariable
+ : arg=LocalIdentifier ':' argTypes=typeExpression
  ;
 
 maybeQualifiedVariable

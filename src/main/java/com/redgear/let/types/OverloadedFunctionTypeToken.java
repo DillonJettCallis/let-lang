@@ -6,13 +6,13 @@ import java.util.Objects;
 
 public class OverloadedFunctionTypeToken implements FunctionTypeToken {
 
-    private final List<SimpleFunctionTypeToken> implementations;
+    private final List<FunctionTypeToken> implementations;
 
-    public OverloadedFunctionTypeToken(List<SimpleFunctionTypeToken> implementations) {
+    public OverloadedFunctionTypeToken(List<FunctionTypeToken> implementations) {
         this.implementations = implementations;
     }
 
-    public List<SimpleFunctionTypeToken> getImplementations() {
+    public List<FunctionTypeToken> getImplementations() {
         return implementations;
     }
 
@@ -21,8 +21,12 @@ public class OverloadedFunctionTypeToken implements FunctionTypeToken {
         return implementations.map(impl -> impl.getResolvedType(argTypes)).find(Objects::nonNull).getOrElse((SimpleFunctionTypeToken) null);
     }
 
+    public int getSignatureMatch(List<TypeToken> argTypes) {
+        return implementations.map(impl -> impl.getResolvedType(argTypes)).indexWhere(Objects::nonNull);
+    }
+
     @Override
     public String getName() {
-        return implementations.map(SimpleFunctionTypeToken::getName).mkString("(", ") or (", ")");
+        return implementations.map(FunctionTypeToken::getName).mkString("(", ") or (", ")");
     }
 }

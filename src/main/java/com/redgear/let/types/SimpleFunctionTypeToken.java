@@ -4,7 +4,7 @@ import javaslang.collection.List;
 
 import java.util.Objects;
 
-public class SimpleFunctionTypeToken implements FunctionTypeToken {
+public class SimpleFunctionTypeToken implements SingleFunctionTypeToken {
 
     private final List<TypeToken> argTypes;
     private final TypeToken resultType;
@@ -31,7 +31,7 @@ public class SimpleFunctionTypeToken implements FunctionTypeToken {
         }
     }
 
-    public FunctionTypeToken setResultType(TypeToken resultType) {
+    public SingleFunctionTypeToken setResultType(TypeToken resultType) {
         return new SimpleFunctionTypeToken(argTypes, resultType);
     }
 

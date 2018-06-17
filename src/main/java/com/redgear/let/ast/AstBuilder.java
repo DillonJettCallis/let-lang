@@ -2,7 +2,9 @@ package com.redgear.let.ast;
 
 import com.redgear.let.antlr.LetParser.*;
 import com.redgear.let.types.*;
+import javaslang.Tuple;
 import javaslang.collection.*;
+import javaslang.control.Option;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.slf4j.Logger;
@@ -58,8 +60,7 @@ public class AstBuilder {
         }
     }
 
-    private Lambda build(FunctionExpressionContext context) {
-        // TODO: Parse and build generic functions
+    private Lambda build(LambdaExpressionContext context) {
         var args = List.ofAll(context.maybeQualifiedVariable())
                 .map(maybe -> {
                     var partial = makeVariable(maybe.LocalIdentifier());
@@ -76,27 +77,100 @@ public class AstBuilder {
         return new Lambda(new Location(context.getStart()), new SimpleFunctionTypeToken(args.map(Variable::getTypeToken), null), args, body);
     }
 
+    private Assignment build(FunctionExpressionContext context) {
+        var id = makeVariable(context.LocalIdentifier());
+
+        var function = build(context.functionDeclaration());
+
+        return  new Assignment(new Location(context.getStart()), function.getTypeToken(), id, function);
+    }
+
     private Expression build(FunctionStatementContext context) {
         var exported = context.exported != null;
+        var id = makeVariable(context.LocalIdentifier());
 
-        var types = List.ofAll(context.argTypes).map(this::buildTypeToken);
-        var resultType = buildTypeToken(context.resultType);
-        var functionType = new SimpleFunctionTypeToken(types, resultType);
-        var ids = List.ofAll(context.LocalIdentifier());
+        var function = build(context.functionDeclaration());
 
-        var id = makeVariable(ids.head());
-
-        var args = ids.tail().map(this::makeVariable).zip(types).map(pair -> pair._1.setTypeToken(pair._2));
-
-        var expressions = List.ofAll(context.expression()).map(this::build);
-
-        var assignment = new Assignment(new Location(context.getStart()), null, id, new Lambda(new Location(context.getStart()), functionType, args, expressions));
+        var assignment = new Assignment(new Location(context.getStart()), function.getTypeToken(), id, function);
 
         if (exported) {
             return new Export(new Location(context.getStart()), null, id.getName(), assignment);
         } else {
             return assignment;
         }
+    }
+
+    private Expression build(FunctionDeclarationContext context) {
+        return Match(context).of(
+                Case(instanceOf(SingleFunctionExpressionContext.class), ex -> build(ex.singleFunctionDeclaration())),
+                Case(instanceOf(OverloadedFunctionExpressionContext.class), this::build)
+        );
+    }
+
+    private Lambda build(SingleFunctionDeclarationContext context) {
+        return Match(context).of(
+                Case(instanceOf(SimpleFunctionExpressionContext.class), this::build),
+                Case(instanceOf(GenericFunctionExpressionContext.class), this::build)
+        );
+    }
+
+    private Lambda build(SimpleFunctionExpressionContext context) {
+        var args = List.ofAll(context.qualifiedVariable())
+                .map(maybe -> makeVariable(maybe.LocalIdentifier()).setTypeToken(buildTypeToken(maybe.argTypes)));
+
+        var resultType = buildTypeToken(context.resultType);
+
+        var body = List.ofAll(context.expression()).map(this::build);
+
+        var functionType = new SimpleFunctionTypeToken(args.map(Variable::getTypeToken), resultType);
+
+        return  new Lambda(new Location(context.getStart()), functionType, args, body);
+    }
+
+    private Lambda build(GenericFunctionExpressionContext context) {
+        var typeParams = List.ofAll(context.typeParam).map(param -> new ParamaterTypeToken(param.getText()));
+        var mappedParams = typeParams.toMap(param -> Tuple.of(param.getName(), param));
+
+        var args = List.ofAll(context.qualifiedVariable())
+                .map(maybe -> {
+                    var typeToken = fillGenericParams(mappedParams, buildTypeToken(maybe.argTypes));
+
+                    return makeVariable(maybe.LocalIdentifier()).setTypeToken(typeToken);
+                });
+
+        var resultType = buildTypeToken(context.resultType);
+
+        var body = List.ofAll(context.expression()).map(this::build);
+
+        var functionType = new GenericFunctionTypeToken(typeParams, args.map(Variable::getTypeToken), resultType);
+
+        return  new Lambda(new Location(context.getStart()), functionType, args, body);
+    }
+
+    private TypeToken fillGenericParams(Map<String, ParamaterTypeToken> params, TypeToken typeToken) {
+        if (typeToken instanceof NamedTypeToken) {
+            var maybe = params.get(typeToken.getName());
+
+            if (maybe.isDefined()) {
+                return maybe.get();
+            } else {
+                return typeToken;
+            }
+        } else if (typeToken instanceof GenericTypeToken) {
+            var genTypeToken = (GenericTypeToken) typeToken;
+            return new GenericTypeToken(fillGenericParams(params, genTypeToken.getTypeConstructor()), genTypeToken.getTypeParams().map(p -> fillGenericParams(params, p)));
+        } else if (typeToken instanceof GenericFunctionTypeToken) {
+            var funTypeToken = (GenericFunctionTypeToken) typeToken;
+            return new GenericFunctionTypeToken(funTypeToken.getTypeParameters(), funTypeToken.getArgTypes().map(a -> fillGenericParams(params, a)), fillGenericParams(params, funTypeToken.getResultType()));
+        } else {
+            return typeToken;
+        }
+    }
+
+    private OverloadedFunction build(OverloadedFunctionExpressionContext context) {
+        var overloads = List.ofAll(context.singleFunctionDeclaration()).map(this::build);
+
+        return new OverloadedFunction(new Location(context.getStart()), new OverloadedFunctionTypeToken(overloads.map(Lambda::getTypeToken)), overloads);
     }
 
     private TypeToken buildTypeToken(TypeExpressionContext con) {
@@ -258,6 +332,7 @@ public class AstBuilder {
 
         return Match(context).of(
                 Case(instanceOf(AssignmentExpressionContext.class), this::build),
+                Case(instanceOf(LambdaExpressionContext.class), this::build),
                 Case(instanceOf(FunctionExpressionContext.class), this::build),
                 Case(instanceOf(CallExpressionContext.class), this::build),
                 Case(instanceOf(ModuleAccessExpressionContext.class), this::build),
