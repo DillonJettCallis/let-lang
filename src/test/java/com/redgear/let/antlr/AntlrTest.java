@@ -5,10 +5,7 @@ import com.redgear.let.ast.Module;
 import com.redgear.let.compile2js.Compiler2js;
 import com.redgear.let.eval.Interpreter;
 import com.redgear.let.eval.LibraryScope;
-import com.redgear.let.lib.CoreLibrary;
-import com.redgear.let.lib.ListLibrary;
-import com.redgear.let.lib.MapLibrary;
-import com.redgear.let.lib.StringLibrary;
+import com.redgear.let.lib.*;
 import com.redgear.let.load.FileLoader;
 import com.redgear.let.types.LibraryTypeScope;
 import com.redgear.let.types.TypeChecker;
@@ -53,6 +50,10 @@ class AntlrTest {
         typeChecker.loadLibModule(stringLib);
         interpreter.loadLibModule(stringLib);
 
+        var tupleLib = new TupleLibrary();
+        typeChecker.loadLibModule(tupleLib);
+        interpreter.loadLibModule(tupleLib);
+
 
         interpreter.run("BasicAssignmentTest");
     }
@@ -69,6 +70,7 @@ class AntlrTest {
         interpreter.loadLibModule(new ListLibrary());
         interpreter.loadLibModule(new MapLibrary());
         interpreter.loadLibModule(new StringLibrary());
+        interpreter.loadLibModule(new TupleLibrary());
 
         interpreter.run("BasicAssignmentTest");
     }
@@ -106,6 +108,7 @@ class AntlrTest {
         typeChecker.loadLibModule(new ListLibrary());
         typeChecker.loadLibModule(new MapLibrary());
         typeChecker.loadLibModule(new StringLibrary());
+        typeChecker.loadLibModule(new TupleLibrary());
 
         typeChecker.loadModule("BasicAssignmentTest");
     }

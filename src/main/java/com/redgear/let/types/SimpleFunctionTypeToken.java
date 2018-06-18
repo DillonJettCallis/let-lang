@@ -37,7 +37,7 @@ public class SimpleFunctionTypeToken implements SingleFunctionTypeToken {
 
     @Override
     public String getName() {
-        return "{" + argTypes.map(TypeToken::getName).mkString(", ") + " => " + resultType.getName() + " }";
+        return "{" + argTypes.map(t -> t == null ? "null" : t.getName()).mkString(", ") + " => " + resultType.getName() + " }";
     }
 
     @Override

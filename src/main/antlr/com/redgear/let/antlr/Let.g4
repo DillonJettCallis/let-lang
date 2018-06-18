@@ -61,6 +61,7 @@ singleFunctionDeclaration
 
 typeExpression
  : ModuleIdentifier # TypeIdentifier
+ | '(' typeExpression (',' typeExpression)+ ')' #TypeTupleIdentifier
  | type=typeExpression '<' typeParams+=typeExpression (',' typeParams+=typeExpression)* '>' # TypeGenericIdentifier
  | '{' (argTypes+=typeExpression (',' argTypes+=typeExpression)*)? '=>' resultType=typeExpression '}' # TypeFunctionIdentifier
  ;

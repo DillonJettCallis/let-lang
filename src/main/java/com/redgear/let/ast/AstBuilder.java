@@ -23,7 +23,7 @@ public class AstBuilder {
             "|/", "flatMap",
             "|?", "filter",
             "|!", "forEach",
-            "|&", "reduce");
+            "|&", "fold");
 
     public AstBuilder() {
 
@@ -138,7 +138,7 @@ public class AstBuilder {
                     return makeVariable(maybe.LocalIdentifier()).setTypeToken(typeToken);
                 });
 
-        var resultType = buildTypeToken(context.resultType);
+        var resultType = fillGenericParams(mappedParams, buildTypeToken(context.resultType));
 
         var body = List.ofAll(context.expression()).map(this::build);
 
@@ -177,13 +177,19 @@ public class AstBuilder {
         return Match(con).of(
                 Case(instanceOf(TypeIdentifierContext.class), context -> new NamedTypeToken(context.ModuleIdentifier().getText())),
                 Case(instanceOf(TypeFunctionIdentifierContext.class), context -> {
-                    return new SimpleFunctionTypeToken(List.ofAll(context.argTypes).map(this::buildTypeToken), buildTypeToken(context.resultType));
+                    var argTypes = List.ofAll(context.argTypes).map(this::buildTypeToken);
+
+                    return new SimpleFunctionTypeToken(argTypes, buildTypeToken(context.resultType));
                 }),
                 Case(instanceOf(TypeGenericIdentifierContext.class), context -> {
                     var typeConstructor = buildTypeToken(context.type);
                     var typeParams = List.ofAll(context.typeParams).map(this::buildTypeToken);
 
                     return new GenericTypeToken(typeConstructor, typeParams);
+                }), Case(instanceOf(TypeTupleIdentifierContext.class), context -> {
+                    var typeParams = List.ofAll(context.typeExpression()).map(this::buildTypeToken);
+
+                    return new GenericTypeToken(LiteralTypeToken.tupleTypeToken, typeParams);
                 })
         );
     }

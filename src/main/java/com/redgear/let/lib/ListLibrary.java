@@ -100,11 +100,6 @@ public class ListLibrary implements ModuleDefinition {
         });
 
         moduleScope.putFunc("fold", (scope, args) -> {
-
-            if (args.size() > 3 || args.size() == 0) {
-                throw new RuntimeException("Wrong number of arguments for function 'List.fold', found: " + args);
-            }
-
             if(args.size() == 3){
                 Object first = args.get(0);
                 Object second = args.get(1);
@@ -115,22 +110,36 @@ public class ListLibrary implements ModuleDefinition {
                     Func func = (Func) third;
 
                     return list.foldRight(second, (l, r) -> caller.callEvaluated(scope, func, List.of(l, r)));
-                } else {
-                    throw new RuntimeException("Illegal arguments: Expected (list, start, func) found: " + first + ", " + second + ", " + third + "}");
                 }
-            } else {
+            } else if (args.size() == 2) {
                 Object first = args.get(0);
                 Object second = args.get(1);
 
-                if (first instanceof List && second instanceof Func) {
+                if (first instanceof List && second instanceof List) {
+                    List<Object> list = (List) first;
+                    List tuple = (List) second;
+
+                    if (tuple.size() == 2) {
+                        Object tupleFirst = tuple.get(0);
+                        Object tupleSecond = tuple.get(1);
+
+                        if (tupleSecond instanceof Func) {
+                            Func func = (Func) tupleSecond;
+
+                            return list.foldRight(tupleFirst, (l, r) -> caller.callEvaluated(scope, func, List.of(l, r)));
+                        }
+                    }
+                } else if (first instanceof List && second instanceof Func) {
                     List<Object> list = (List) first;
                     Func func = (Func) second;
 
                     return list.tail().foldRight(list.head(), (l, r) -> caller.callEvaluated(scope, func, List.of(l, r)));
-                } else {
-                    throw new RuntimeException("Illegal arguments: Expected (list, func) found: " + first + ", " + second + "}");
                 }
+            } else {
+                throw new RuntimeException("Wrong number of arguments for function 'List.fold', found: " + args);
             }
+
+            throw new RuntimeException("Illegal arguments: Expected (list, start, func) | (list, (start, func)) found: (" + args + ")");
         });
 
         moduleScope.putFunc("reduce", (scope, args) -> {
@@ -175,7 +184,12 @@ public class ListLibrary implements ModuleDefinition {
         var flatMapperFunction = new GenericFunctionTypeToken(mapperParams, List.of(listItem), mapperResult);
         typeScope.declareType("flatMap", new GenericFunctionTypeToken(mapperParams, List.of(listOfItem, flatMapperFunction), mapperResult));
 
-        typeScope.declareType("fold", new GenericFunctionTypeToken(mapperParams, List.of(listOfItem, outItem, new GenericFunctionTypeToken(mapperParams, List.of(outItem, listItem), outItem)), outItem));
+        var foldMapper = new GenericFunctionTypeToken(mapperParams, List.of(outItem, listItem), outItem);
+        var foldNormal = new GenericFunctionTypeToken(mapperParams, List.of(listOfItem, outItem, foldMapper), outItem);
+        var foldTuple = new GenericFunctionTypeToken(mapperParams, List.of(listOfItem, new GenericTypeToken(LiteralTypeToken.tupleTypeToken, List.of(outItem, foldMapper))), outItem);
+        var foldReduce = new GenericFunctionTypeToken(mapperParams, List.of(listOfItem, new GenericFunctionTypeToken(mapperParams, List.of(listItem, listItem), listItem)), listItem);
+
+        typeScope.declareType("fold", new OverloadedFunctionTypeToken(List.of(foldNormal, foldTuple, foldReduce)));
 
 
         typeScope.declareType("reduce", new GenericFunctionTypeToken(listParams, List.of(listOfItem, new GenericFunctionTypeToken(listParams, List.of(listItem, listItem), listItem)), listItem));

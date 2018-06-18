@@ -215,8 +215,6 @@ public class TypeChecker implements Loader {
 
         var args = ex.getVariables()
                 .map(arg -> {
-                    var argType = arg.getTypeToken();
-
                     if (functionType instanceof GenericFunctionTypeToken) {
                         var paramTypes = ((GenericFunctionTypeToken) functionType).getTypeParameters();
 

@@ -5,6 +5,7 @@
 import Core.Map
 import Core.List
 import Core.String
+import Core.Tuple
 
 
 fun test(): Unit {
@@ -128,13 +129,15 @@ export fun main(): Unit {
 
     let totalTest = nums | {i: Int => i + 1}  |& SomeLib.multiply
 
-    let flat = [1, 2, 3] |/ {i => [i, i]} |& sum :: String.toString() :: print()
+    let flat = [1, 2, 3] |/ {i => [i, i]} |& (100, sum) :: String.toString() :: print()
 
     let listOfWords = for (next in 'This is a test'::String.split(' ')) {
         print(next & ' ' & next::String.size())
     }
 
-    let foldResult = List.fold([1, 2, 3], '', {s, i => s & i})
+    let foldResultNormal = List.fold([1, 2, 3], '', {s, i => s & i})
+    let foldResultTuple = List.fold([1, 2, 3], ('', {s: String, i: Int => s & i}))
+    let foldResultReduce = List.fold([1, 2, 3], {s, i => s + i})
     let reduceResult = List.reduce([1, 2, 3], {a, b => a + b})
 
     let pair = (3, 4)
@@ -149,5 +152,15 @@ export fun main(): Unit {
 
     let concatIndexStringTest = concatIndexes(["A", "B", "C"], 0, 2);
     let concatIndexNumTest = concatIndexes([5, 4, 3], 1, 2);
+
+    fun tupleTest<First, Third>(triple: (First, String, Third)): (String, Third) {
+        let first = triple::Tuple.head()
+        let pair = triple::Tuple.tail()
+        let second = pair::Tuple.head()
+        let third = pair::Tuple.tail()
+        let _ = (first & second, third)
+    }
+
+    let tupleTestResult = tupleTest( (5, " A Test ", 9.5) )
 
 }
